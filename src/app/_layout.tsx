@@ -53,7 +53,7 @@ export default function RootLayout() {
     } else if (!session && !isAuthRoute) {
       router.replace("/login");
     }
-  }, [session, pathname, initializing, router]);
+  }, [session, initializing, router, pathname]);
 
   return (
     <Stack

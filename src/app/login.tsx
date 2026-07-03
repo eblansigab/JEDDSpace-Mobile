@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 
 export default function Login() {
-  const router = useRouter();
-  // Form state (same as web)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,13 +84,6 @@ export default function Login() {
           <Text style={styles.buttonText}>Sign In</Text>
         )}
       </TouchableOpacity>
-
-      <View style={styles.signUpContainer}>
-        <Text style={styles.signUpText}>Don&apos;t have an account? </Text>
-        <TouchableOpacity onPress={() => router.push("/sign-in")} disabled={loading}>
-          <Text style={[styles.signUpLink, loading && styles.disabled]}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }

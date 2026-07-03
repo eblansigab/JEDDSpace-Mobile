@@ -1,69 +1,94 @@
 import Card from "@/components/card";
 import MenuDropdown from "@/components/menuDropdown";
-import { uploadFile } from "@/components/UploadFile";
+import { supabase } from "@/lib/supabase";
 import * as DocumentPicker from "expo-document-picker";
-import { File } from "expo-file-system";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Button,
+  ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
   TextInput,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type DocumentItem = {
-  id: string;
-  name: string;
-  uploadedBy: string;
-  uploadedAt: string;
+  document_id: string;
+  title: string;
+  file_name: string;
+  file_size?: number | null;
+  file_type?: string | null;
+  uploaded_by?: string | null;
+  created_at?: string | null;
 };
-
-const documentsData: DocumentItem[] = [
-  {
-    id: "1",
-    name: "Document 1.pdf",
-    uploadedBy: "Admin",
-    uploadedAt: "1 min ago",
-  },
-  {
-    id: "2",
-    name: "Document 2.docx",
-    uploadedBy: "HR",
-    uploadedAt: "5 mins ago",
-  },
-  {
-    id: "3",
-    name: "Presentation.pptx",
-    uploadedBy: "Manager",
-    uploadedAt: "10 mins ago",
-  },
-  {
-    id: "4",
-    name: "Report.pdf",
-    uploadedBy: "Finance",
-    uploadedAt: "20 mins ago",
-  },
-  {
-    id: "5",
-    name: "Invoice.xlsx",
-    uploadedBy: "Accounting",
-    uploadedAt: "30 mins ago",
-  },
-];
 
 export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fileName, setFileName] = useState("");
   const [selectedUri, setSelectedUri] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const { data: docs, error: docError } = await supabase
+          .from("document")
+          .select("document_id, title, file_name, file_size, file_type, uploaded_by, created_at")
+          .order("created_at", { ascending: false });
+
+        if (docError) throw docError;
+        const docsList = (docs || []) as DocumentItem[];
+
+        const uploaderIds = Array.from(
+          new Set(docsList.map((d) => d.uploaded_by).filter((id): id is string => Boolean(id)))
+        );
+
+        let nameMap: Record<string, string> = {};
+        if (uploaderIds.length > 0) {
+          const { data: emps, error: empError } = await supabase
+            .from("employee")
+            .select("user_id, first_name, last_name")
+            .in("user_id", uploaderIds);
+
+          if (!empError && emps) {
+            emps.forEach((e) => {
+              if (e.user_id) {
+                nameMap[e.user_id] = `${e.first_name ?? ""} ${e.last_name ?? ""}`.trim() || "User";
+              }
+            });
+          }
+        }
+
+        if (isMounted) {
+          setDocuments(docsList);
+          setEmployeeMap(nameMap);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("[MobileAI] Documents load error:", err);
+          Alert.alert("Error", "Failed to load documents.");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const pickFile = async () => {
-    const a = await DocumentPicker.getDocumentAsync({
+    const result = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
     });
-    if (!a.canceled) {
-      const asset = a.assets[0];
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
       setFileName(asset.name);
       setSelectedUri(asset.uri);
     }
@@ -71,19 +96,75 @@ export default function Documents() {
 
   const uploadButton = async () => {
     if (!fileName || !selectedUri) return;
+    setUploading(true);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        Alert.alert("Error", "You must be logged in to upload documents.");
+        return;
+      }
+
       const resp = await fetch(selectedUri);
-      const arrayBuffer = await resp.arrayBuffer();
-      const file = new File([arrayBuffer], fileName, { type: "application/octet-stream" });
-      await uploadFile(file);
+      const fileBody = await resp.arrayBuffer();
+      const storagePath = `${Date.now()}-${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("document")
+        .upload(storagePath, fileBody, {
+          contentType: "application/octet-stream",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from("document").getPublicUrl(storagePath);
+      const filePath = publicUrlData.publicUrl;
+
+      const { error: insertError } = await supabase.from("document").insert({
+        title: fileName,
+        file_name: fileName,
+        file_path: filePath,
+        file_type: "application/octet-stream",
+        file_size: fileBody.byteLength,
+        uploaded_by: session.user.id,
+      });
+
+      if (insertError) throw insertError;
+
+      Alert.alert("Success", "Document uploaded successfully.");
+      setFileName("");
+      setSelectedUri(null);
     } catch (err) {
       console.error("[MobileAI] Upload error:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      Alert.alert("Upload Failed", message);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const filteredDocs = documentsData.filter((doc) =>
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString();
+  };
+
+  const filteredDocs = documents.filter((doc) =>
+    doc.file_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    doc.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E0977" />
+        <Text style={styles.loadingText}>Loading documents...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -94,21 +175,45 @@ export default function Documents() {
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
-      <Button title="test" onPress={pickFile} />
-      <Text>{fileName}</Text>
-      <Button title="upload here" onPress={uploadButton} />
+
+      <TouchableOpacity style={styles.pickBtn} onPress={pickFile} activeOpacity={0.8}>
+        <Text style={styles.pickBtnText}>Choose File</Text>
+      </TouchableOpacity>
+      {fileName ? <Text style={styles.fileName}>Selected: {fileName}</Text> : null}
+
+      <TouchableOpacity
+        style={[styles.uploadBtn, (!fileName || !selectedUri || uploading) && styles.uploadBtnDisabled]}
+        onPress={uploadButton}
+        disabled={!fileName || !selectedUri || uploading}
+        activeOpacity={0.8}
+      >
+        {uploading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={styles.uploadBtnText}>Upload Document</Text>
+        )}
+      </TouchableOpacity>
+
       <FlatList
         data={filteredDocs}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.document_id}
+        contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No documents found.</Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <Card>
-            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.name}>{item.title || item.file_name || "Untitled"}</Text>
             <Text style={styles.meta}>
-              Uploaded by {item.uploadedBy} • {item.uploadedAt}
+              Uploaded by {employeeMap[item.uploaded_by || ""] || "Unknown"} • {formatDate(item.created_at)}
             </Text>
+            {item.file_type ? (
+              <Text style={styles.meta}>Type: {item.file_type}</Text>
+            ) : null}
           </Card>
         )}
-        contentContainerStyle={{ gap: 8 }}
       />
     </View>
   );
@@ -119,9 +224,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 24,
-    gap: 16,
+    gap: 12,
     backgroundColor: "#fff",
   },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#fff" },
+  loadingText: { fontSize: 14, color: "#6B7280" },
   search: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -129,14 +236,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E0977", // brand color
-    marginBottom: 4,
+  pickBtn: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  meta: {
-    fontSize: 12,
-    color: "#666",
+  pickBtnText: { fontSize: 14, fontWeight: "600", color: "#374151" },
+  fileName: { fontSize: 13, color: "#6B7280" },
+  uploadBtn: {
+    backgroundColor: "#1E0977",
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
   },
+  uploadBtnDisabled: { opacity: 0.6 },
+  uploadBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  name: { fontSize: 16, fontWeight: "600", color: "#1E0977", marginBottom: 4 },
+  meta: { fontSize: 12, color: "#666" },
+  emptyState: { alignItems: "center", paddingTop: 40 },
+  emptyText: { fontSize: 14, color: "#9CA3AF" },
 });

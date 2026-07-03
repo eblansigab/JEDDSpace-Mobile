@@ -20,10 +20,6 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { kind: "link", label: "Leave Form", icon: "calendar-outline", value: "/leave-form" },
   { kind: "section", label: "AI Tools" },
   { kind: "link", label: "AI Assistant", icon: "sparkles-outline", value: "/ai-assistant" },
-  { kind: "link", label: "AI Analytics", icon: "pie-chart-outline", value: "/ai-analytics", adminOnly: true },
-  { kind: "link", label: "AI Chat Logs", icon: "list-outline", value: "/ai-chat-logs", adminOnly: true },
-  { kind: "section", label: "Admin" },
-  { kind: "link", label: "Registration Requests", icon: "person-add-outline", value: "/registration-requests", adminOnly: true },
 ];
 
 export default function MenuDropdown() {

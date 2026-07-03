@@ -4,12 +4,16 @@ import { supabase } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import * as DocumentPicker from "expo-document-picker";
-import React, { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -50,6 +54,8 @@ const logAssistantError = (label: string, error: unknown, meta: Record<string, u
 const createSessionId = () => `session_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 export default function AiAssistantScreen() {
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,7 +63,10 @@ export default function AiAssistantScreen() {
   const [sessionId, setSessionId] = useState("");
   const [sessions, setSessions] = useState<string[]>([]);
   const [profile, setProfile] = useState<{ first_name?: string } | null>(null);
-  const [attachments, setAttachments] = useState<Record<string, unknown>[]>([]);
+  const [attachments, setAttachments] = useState<
+    { uri: string; name: string; type: string; size: number }[]
+  >([]);
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -177,7 +186,7 @@ export default function AiAssistantScreen() {
         const updated = [...current];
         updated[updated.length - 1] = { role: "assistant", content: reply };
         return updated;
-        });
+      });
 
       const {
         data: { session },
@@ -190,7 +199,12 @@ export default function AiAssistantScreen() {
       }
       setAttachments([]);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       logAssistantError("AI request failed", error, { sessionId });
+      if (message.toLowerCase().includes("authentication")) {
+        router.replace("/login");
+        return;
+      }
       setMessages((current) => [...current, { role: "assistant", content: "AI service is currently unavailable." }]);
     } finally {
       if (statusTimer) clearTimeout(statusTimer);
@@ -244,6 +258,11 @@ export default function AiAssistantScreen() {
         }
       } catch (error) {
         logAssistantError("Recommendation error", error, { sessionId });
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.toLowerCase().includes("authentication")) {
+          router.replace("/login");
+          return;
+        }
         appendMessage("assistant", "Unable to fetch recommendations at this time.");
         setLoading(false);
         setLoadingStatus("");
@@ -278,6 +297,7 @@ export default function AiAssistantScreen() {
     setSessionId(nextSessionId);
     setMessages([welcomeMessage]);
     setPrompt("");
+    setShowSessionPicker(false);
   };
 
   const handleSwitchSession = async (nextSessionId: string) => {
@@ -285,6 +305,7 @@ export default function AiAssistantScreen() {
     setSessionId(nextSessionId);
     setMessages([welcomeMessage]);
     setPrompt("");
+    setShowSessionPicker(false);
 
     const {
       data: { session },
@@ -328,13 +349,24 @@ export default function AiAssistantScreen() {
     }
   };
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => (
-    <View style={[styles.messageRow, item.role === "user" ? styles.userRow : styles.assistantRow]}>
-      <View style={[styles.messageBubble, item.role === "user" ? styles.userBubble : styles.assistantBubble]}>
-        <Text style={[styles.messageText, item.role === "user" && styles.userMessageText]}>{item.content}</Text>
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
+    const isUser = item.role === "user";
+    return (
+      <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
+        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+          {!isUser && (
+            <View style={styles.assistantHeader}>
+              <View style={styles.aiAvatar}>
+                <Text style={styles.aiAvatarText}>AI</Text>
+              </View>
+              <Text style={styles.assistantName}>JEDDSpace AI</Text>
+            </View>
+          )}
+          <Text style={[styles.messageText, isUser && styles.userMessageText]}>{item.content}</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderPrompt = ({ item }: { item: { label: string; message: string } }) => (
     <TouchableOpacity
@@ -347,72 +379,114 @@ export default function AiAssistantScreen() {
     </TouchableOpacity>
   );
 
+  const renderSessionOption = (s: string, idx: number) => {
+    const isActive = s === sessionId;
+    const label = idx === 0 && isActive ? "Current Chat" : `Chat ${idx + 1}`;
+    return (
+      <TouchableOpacity
+        key={s}
+        style={[styles.sessionModalOption, isActive && styles.sessionModalOptionActive]}
+        onPress={() => void handleSwitchSession(s)}
+      >
+        <View style={styles.sessionModalLeft}>
+          <Ionicons
+            name={isActive ? "chatbubbles" : "chatbubble-outline"}
+            size={18}
+            color={isActive ? "#fff" : "#374151"}
+          />
+          <Text style={[styles.sessionModalText, isActive && styles.sessionModalTextActive]}>{label}</Text>
+        </View>
+        <View style={styles.sessionModalActions}>
+          {isActive ? (
+            <Text style={styles.sessionModalActiveLabel}>Active</Text>
+          ) : (
+            <TouchableOpacity onPress={() => void handleSwitchSession(s)} hitSlop={8}>
+              <Text style={styles.sessionModalSwitch}>Switch</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <MenuDropdown />
 
       <View style={styles.header}>
-        <Text style={styles.title}>AI Assistant</Text>
-        <Text style={styles.subtitle}>
-          {`JEDDSpace AI is ready${profile?.first_name ? `, ${profile.first_name}` : ""}. Ask about jobs, employees, leave, contracts, notifications, documents, or upload files for analysis.`}
-        </Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.clearBtn} onPress={handleClearChat} disabled={loading}>
-            <Text style={styles.clearBtnText}>Clear Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.newBtn} onPress={handleNewChat} disabled={loading}>
-            <Text style={styles.newBtnText}>New Chat</Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.title}>AI Assistant</Text>
+            <Text style={styles.subtitle}>
+              {`JEDDSpace AI is ready${profile?.first_name ? `, ${profile.first_name}` : ""}.`}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.sessionBtn} onPress={() => setShowSessionPicker(true)} activeOpacity={0.7}>
+            <Ionicons name="git-branch-outline" size={18} color="#1E0977" />
+            <Text style={styles.sessionBtnText}>Chats</Text>
           </TouchableOpacity>
         </View>
-      </View>
-
-      <View style={styles.sessionSelector}>
-        <Text style={styles.sessionLabel}>Session:</Text>
-        <View style={styles.sessionOptions}>
-          {sessions.map((s, idx) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.sessionOption, s === sessionId && styles.sessionOptionActive]}
-              onPress={() => void handleSwitchSession(s)}
-              disabled={loading}
-            >
-              <Text style={[styles.sessionOptionText, s === sessionId && styles.sessionOptionTextActive]}>
-                {idx === 0 && s === sessionId ? "Current Chat" : `Chat ${idx + 1}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleClearChat} disabled={loading} hitSlop={8}>
+            <Ionicons name="trash-outline" size={18} color="#374151" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleNewChat} disabled={loading} hitSlop={8}>
+            <Ionicons name="add-circle-outline" size={18} color="#1E0977" />
+            <Text style={styles.iconBtnText}>New Chat</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={messages}
         keyExtractor={(_item, idx) => `msg-${idx}`}
         renderItem={renderMessage}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No messages yet. Start by asking a question!</Text>
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="sparkles-outline" size={32} color="#1E0977" />
+            </View>
+            <Text style={styles.emptyTitle}>Start a conversation</Text>
+            <Text style={styles.emptySubtitle}>
+              Ask about jobs, employees, leave, contracts, notifications, or documents.
+            </Text>
+          </View>
         }
       />
 
       {loading && (
-        <View style={styles.loadingOverlay}>
+        <View style={styles.statusPill}>
           <ActivityIndicator size="small" color="#1E0977" />
-          <Text style={styles.loadingText}>{loadingStatus || "Thinking..."}</Text>
+          <Text style={styles.statusText}>{loadingStatus || "Thinking..."}</Text>
         </View>
       )}
 
       {attachments.length > 0 && (
-        <View style={styles.attachmentBar}>
-          <Ionicons name="attach-outline" size={16} color="#1E0977" />
-          <Text style={styles.attachmentText}>{attachments.length} attachment{attachments.length === 1 ? "" : "s"} ready</Text>
-          <TouchableOpacity onPress={() => setAttachments([])} disabled={loading}>
-            <Text style={styles.removeAttachmentText}>Clear</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
+          <View style={styles.attachmentRow}>
+            {attachments.map((att, idx) => (
+              <View key={idx} style={styles.attachmentChip}>
+                <Ionicons name="document-attach-outline" size={14} color="#1E0977" />
+                <Text style={styles.attachmentName} numberOfLines={1}>
+                  {att.name}
+                </Text>
+                <TouchableOpacity onPress={() => setAttachments((c) => c.filter((_, i) => i !== idx))} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       )}
 
       <View style={styles.suggestedPrompts}>
+        <Text style={styles.promptsTitle}>Suggested</Text>
         <FlatList
           horizontal
           data={quickPrompts}
@@ -425,7 +499,7 @@ export default function AiAssistantScreen() {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={100}
+        keyboardVerticalOffset={90}
       >
         <View style={styles.inputRow}>
           <TouchableOpacity
@@ -433,41 +507,85 @@ export default function AiAssistantScreen() {
             onPress={() => void handlePickAttachment()}
             disabled={loading}
             activeOpacity={0.7}
+            hitSlop={8}
           >
             <Ionicons name="attach-outline" size={20} color="#1E0977" />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
-            placeholder="Ask about employees, jobs, leave, contracts..."
+            placeholder="Ask about employees, jobs, leave..."
             placeholderTextColor="#9CA3AF"
             value={prompt}
             onChangeText={setPrompt}
             onSubmitEditing={() => void runPrompt(prompt, true)}
             editable={!loading}
+            returnKeyType="send"
           />
           <TouchableOpacity
             style={[styles.sendBtn, (!prompt.trim() || loading) && styles.sendBtnDisabled]}
             onPress={() => void runPrompt(prompt, true)}
             disabled={!prompt.trim() || loading}
+            activeOpacity={0.7}
+            hitSlop={8}
           >
-            <Text style={styles.sendBtnText}>Send</Text>
+            <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={showSessionPicker} animationType="slide" transparent onRequestClose={() => setShowSessionPicker(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowSessionPicker(false)}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chat History</Text>
+              <TouchableOpacity onPress={() => setShowSessionPicker(false)} hitSlop={12}>
+                <Ionicons name="close" size={22} color="#374151" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalList}>
+              <TouchableOpacity style={styles.newChatRow} onPress={handleNewChat} activeOpacity={0.7}>
+                <View style={styles.newChatIcon}>
+                  <Ionicons name="add" size={20} color="#fff" />
+                </View>
+                <Text style={styles.newChatText}>New Chat</Text>
+              </TouchableOpacity>
+              {sessions.map((s, idx) => renderSessionOption(s, idx))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const Pressable = ({ children, ...rest }: { children: React.ReactNode } & TouchableOpacity["props"]) => (
+  <TouchableOpacity activeOpacity={1} {...rest}>
+    {children}
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    gap: 12,
   },
   header: {
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    gap: 10,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  headerTextBlock: {
+    flex: 1,
+    gap: 2,
   },
   title: {
     fontSize: 20,
@@ -478,69 +596,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
   },
-  headerActions: {
+  sessionBtn: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 4,
-  },
-  clearBtn: {
+    alignItems: "center",
+    gap: 6,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    backgroundColor: "#F9FAFB",
   },
-  clearBtnText: {
+  sessionBtnText: {
     fontSize: 13,
-    color: "#374151",
     fontWeight: "600",
+    color: "#1E0977",
   },
-  newBtn: {
-    backgroundColor: "#1E0977",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
   },
-  newBtnText: {
-    fontSize: 13,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  sessionSelector: {
+  iconBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
   },
-  sessionLabel: {
+  iconBtnText: {
     fontSize: 13,
     fontWeight: "600",
     color: "#374151",
   },
-  sessionOptions: {
-    flexDirection: "row",
-    gap: 6,
-    flexWrap: "wrap",
-  },
-  sessionOption: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: "#F3F4F6",
-  },
-  sessionOptionActive: {
-    backgroundColor: "#1E0977",
-  },
-  sessionOptionText: {
-    fontSize: 12,
-    color: "#374151",
-  },
-  sessionOptionTextActive: {
-    color: "#fff",
-  },
   messagesList: {
-    gap: 12,
-    paddingBottom: 8,
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   messageRow: {
     flexDirection: "row",
@@ -553,55 +649,148 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   messageBubble: {
-    maxWidth: "80%",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    maxWidth: "85%",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 4,
   },
   userBubble: {
     backgroundColor: "#1E0977",
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    borderBottomLeftRadius: 4,
+  },
+  assistantHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  aiAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiAvatarText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#1E0977",
+  },
+  assistantName: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1E0977",
   },
   messageText: {
     fontSize: 14,
+    lineHeight: 20,
     color: "#111827",
   },
   userMessageText: {
     color: "#fff",
   },
-  loadingOverlay: {
+  statusPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    padding: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#EEF2FF",
+    borderRadius: 20,
+    alignSelf: "flex-start",
   },
-  loadingText: {
+  statusText: {
+    fontSize: 12,
+    color: "#1E0977",
+    fontWeight: "600",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  emptySubtitle: {
     fontSize: 13,
     color: "#6B7280",
-  },
-  emptyText: {
     textAlign: "center",
-    color: "#9CA3AF",
-    marginTop: 40,
+  },
+  attachmentScroll: {
+    maxHeight: 44,
+    marginHorizontal: 16,
+    marginBottom: 6,
+  },
+  attachmentRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  attachmentChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#EEF2FF",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    maxWidth: 220,
+  },
+  attachmentName: {
+    fontSize: 12,
+    color: "#1E0977",
+    fontWeight: "600",
+    flex: 1,
   },
   suggestedPrompts: {
-    marginTop: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  promptsTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7280",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   promptsList: {
     gap: 8,
+    paddingBottom: 4,
   },
   promptChip: {
     backgroundColor: "#EEF2FF",
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
   promptChipText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#1E0977",
     fontWeight: "600",
   },
@@ -609,61 +798,145 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
   },
   attachBtn: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#F9FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
-  attachmentBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#EEF2FF",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  attachmentText: {
-    flex: 1,
-    color: "#1E0977",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  removeAttachmentText: {
-    color: "#EF4444",
-    fontSize: 12,
-    fontWeight: "700",
+  sendBtnDisabled: {
+    opacity: 0.4,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    fontSize: 14,
-    color: "#111827",
-  },
-  sendBtn: {
-    backgroundColor: "#1E0977",
-    borderRadius: 8,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    backgroundColor: "#F9FAFB",
+    fontSize: 14,
+    color: "#111827",
+    maxHeight: 120,
   },
-  sendBtnDisabled: {
-    opacity: 0.5,
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1E0977",
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendBtnText: {
     color: "#fff",
     fontSize: 14,
+    fontWeight: "700",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  modalList: {
+    padding: 16,
+    gap: 8,
+  },
+  newChatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 4,
+  },
+  newChatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1E0977",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  newChatText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  sessionModalOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  sessionModalOptionActive: {
+    backgroundColor: "#1E0977",
+    borderColor: "#1E0977",
+  },
+  sessionModalLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sessionModalText: {
+    fontSize: 14,
     fontWeight: "600",
+    color: "#111827",
+  },
+  sessionModalTextActive: {
+    color: "#fff",
+  },
+  sessionModalActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sessionModalActiveLabel: {
+    fontSize: 12,
+    color: "#C7D2FE",
+    fontWeight: "600",
+  },
+  sessionModalSwitch: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#EEF2FF",
   },
 });

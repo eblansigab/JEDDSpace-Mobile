@@ -16,7 +16,6 @@ import {
 } from "react-native";
 
 interface BusinessFormState {
-  project: string;
   startDate: string;
   endDate: string;
   location: string;
@@ -35,7 +34,6 @@ function isValidDate(str: string): boolean {
 
 export default function BusinessForm() {
   const [form, setForm] = useState<BusinessFormState>({
-    project: "",
     startDate: "",
     endDate: "",
     location: "",
@@ -69,7 +67,6 @@ export default function BusinessForm() {
   };
 
   const validate = (): string | null => {
-    if (!form.project.trim()) return "Please enter a project name.";
     if (!form.startDate || !isValidDate(form.startDate)) return "Enter a valid start date (YYYY-MM-DD).";
     if (!form.endDate || !isValidDate(form.endDate)) return "Enter a valid end date (YYYY-MM-DD).";
     if (new Date(form.startDate) > new Date(form.endDate)) return "Start date must be before end date.";
@@ -101,8 +98,6 @@ export default function BusinessForm() {
         company_car: form.companyCar,
         driver_name: form.companyCar ? form.driverName.trim() : null,
         phone_num: form.companyCar ? form.phoneNum.trim() : null,
-        created_by: userId,
-        project: form.project.trim(),
       });
 
       if (insertError) throw insertError;
@@ -112,7 +107,6 @@ export default function BusinessForm() {
           text: "OK",
           onPress: () => {
             setForm({
-              project: "",
               startDate: "",
               endDate: "",
               location: "",
@@ -146,18 +140,6 @@ export default function BusinessForm() {
         >
           <Text style={styles.pageTitle}>Official Business Form</Text>
           <Text style={styles.pageSubtitle}>Submit your official business trip details for approval.</Text>
-
-          {/* Project */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Project Name *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter project name"
-              placeholderTextColor="#9CA3AF"
-              value={form.project}
-              onChangeText={(v) => setField("project", v)}
-            />
-          </View>
 
           {/* Start Date */}
           <View style={styles.field}>

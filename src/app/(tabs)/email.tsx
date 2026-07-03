@@ -1,5 +1,6 @@
 import MenuDropdown from "@/components/menuDropdown";
-import React, { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -58,14 +59,8 @@ const emailList: Email[] = [
   },
 ];
 
-const RECIPIENT_OPTIONS = [
-  "UserfirstName UserlastName",
-  "Danben Test1",
-  "Sender Name 3",
-  "Sender Name 4",
-];
-
 type Tab = "inbox" | "unread" | "sent";
+type EmployeeOption = { employee_id: string; first_name: string; last_name: string };
 
 function getInitials(name: string) {
   return name
@@ -87,6 +82,36 @@ export default function Emails() {
   const [recipient, setRecipient] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [recipientQuery, setRecipientQuery] = useState("");
+  const [employeeLoading, setEmployeeLoading] = useState(true);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("employee")
+          .select("employee_id, first_name, last_name")
+          .or("registration_status.is.null,registration_status.neq.rejected")
+          .neq("is_archived", true)
+          .order("first_name", { ascending: true });
+
+        if (!error && data) {
+          setEmployees(data as EmployeeOption[]);
+        }
+      } catch {
+        // keep empty list on failure
+      } finally {
+        setEmployeeLoading(false);
+      }
+    })();
+  }, []);
+
+  const filteredEmployees = recipientQuery.trim()
+    ? employees.filter((e) =>
+        `${e.first_name} ${e.last_name}`.toLowerCase().includes(recipientQuery.trim().toLowerCase())
+      )
+    : employees;
 
   const filteredEmails = emailList.filter((e) => {
     const matchesTab =
@@ -302,22 +327,56 @@ export default function Emails() {
               </TouchableOpacity>
 
               {showRecipientPicker && (
-                <View style={styles.recipientList}>
-                  {RECIPIENT_OPTIONS.map((r) => (
-                    <TouchableOpacity
-                      key={r}
-                      style={styles.recipientOption}
-                      onPress={() => {
-                        setRecipient(r);
-                        setShowRecipientPicker(false);
-                      }}
-                    >
-                      <View style={[styles.recipientAvatar, { backgroundColor: AVATAR_COLORS[RECIPIENT_OPTIONS.indexOf(r) % AVATAR_COLORS.length] }]}>
-                        <Text style={styles.avatarText}>{getInitials(r)}</Text>
+                <View style={styles.recipientPickerContainer}>
+                  <View style={styles.recipientSearchWrap}>
+                    <Text style={styles.recipientSearchIcon}>🔍</Text>
+                    <TextInput
+                      style={styles.recipientSearchInput}
+                      placeholder="Search employees..."
+                      placeholderTextColor="#9CA3AF"
+                      value={recipientQuery}
+                      onChangeText={setRecipientQuery}
+                    />
+                  </View>
+                  <ScrollView style={styles.recipientList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    {employeeLoading ? (
+                      <View style={styles.recipientLoading}>
+                        <Text style={styles.recipientLoadingText}>Loading employees...</Text>
                       </View>
-                      <Text style={styles.recipientOptionText}>{r}</Text>
-                    </TouchableOpacity>
-                  ))}
+                    ) : filteredEmployees.length === 0 ? (
+                      <View style={styles.recipientEmpty}>
+                        <Text style={styles.recipientEmptyText}>No employees found.</Text>
+                      </View>
+                    ) : (
+                      filteredEmployees.map((emp) => {
+                        const fullName = `${emp.first_name} ${emp.last_name}`;
+                        const label = fullName.trim() || "Unnamed";
+                        const initials = label
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase();
+
+                        return (
+                          <TouchableOpacity
+                            key={emp.employee_id}
+                            style={styles.recipientOption}
+                            onPress={() => {
+                              setRecipient(label);
+                              setShowRecipientPicker(false);
+                              setRecipientQuery("");
+                            }}
+                          >
+                            <View style={[styles.recipientAvatar, { backgroundColor: AVATAR_COLORS[(String(emp.employee_id).charCodeAt(0) || 65) % AVATAR_COLORS.length] }]}>
+                              <Text style={styles.avatarText}>{initials}</Text>
+                            </View>
+                            <Text style={styles.recipientOptionText}>{label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </ScrollView>
                 </View>
               )}
 
@@ -575,14 +634,34 @@ const styles = StyleSheet.create({
   recipientPlaceholder: { fontSize: 14, color: "#9CA3AF" },
   recipientSelected: { fontSize: 14, color: "#111827", fontWeight: "500" },
   chevron: { fontSize: 10, color: "#6B7280" },
-  recipientList: {
+  recipientPickerContainer: {
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 8,
     backgroundColor: "#fff",
     overflow: "hidden",
     marginTop: -4,
+    maxHeight: 320,
   },
+  recipientSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: "#F9FAFB",
+  },
+  recipientSearchIcon: { fontSize: 14 },
+  recipientSearchInput: { flex: 1, fontSize: 14, color: "#111827", paddingVertical: 4 },
+  recipientList: {
+    maxHeight: 240,
+  },
+  recipientLoading: { paddingVertical: 16, alignItems: "center" },
+  recipientLoadingText: { fontSize: 13, color: "#6B7280" },
+  recipientEmpty: { paddingVertical: 16, alignItems: "center" },
+  recipientEmptyText: { fontSize: 13, color: "#9CA3AF" },
   recipientOption: {
     flexDirection: "row",
     alignItems: "center",

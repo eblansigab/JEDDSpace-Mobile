@@ -32,9 +32,6 @@ export default function TabLayout() {
         <Tabs.Screen name="business-form" options={{ title: "Official Business Form", href: null }} />
         <Tabs.Screen name="leave-form" options={{ title: "Leave Form", href: null }} />
         <Tabs.Screen name="ai-assistant" options={{ title: "AI", href: null }} />
-        <Tabs.Screen name="ai-analytics" options={{ title: "AI Analytics", href: null }} />
-        <Tabs.Screen name="ai-chat-logs" options={{ title: "AI Logs", href: null }} />
-        <Tabs.Screen name="registration-requests" options={{ title: "Registrations", href: null }} />
         <Tabs.Screen name="awaiting-approval" options={{ title: "Awaiting Approval", href: null }} />
         <Tabs.Screen
           name="profile"

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-type Status = "ongoing" | "cancelled" | "completed";
+type Status = "ongoing" | "cancelled" | "completed" | "pending_signature";
 
 type Props = {
   status: Status;
@@ -10,6 +10,7 @@ const STATUS_CONFIG: Record<Status, { color: string; label: string }> = {
   ongoing:   { color: "#F59E0B", label: "Ongoing" },
   cancelled: { color: "#EF4444", label: "Cancelled" },
   completed: { color: "#22C55E", label: "Completed" },
+  pending_signature: { color: "#3B82F6", label: "Pending Signature" },
 };
 
 export default function StatusBadge({ status }: Props) {

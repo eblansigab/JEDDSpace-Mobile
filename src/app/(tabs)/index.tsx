@@ -2,8 +2,9 @@ import CalendarView from "@/components/CalendarView";
 import MenuDropdown from "@/components/menuDropdown";
 import { ViewNumberOfDocuments } from "@/components/ViewNumberOfDocuments";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -49,6 +50,41 @@ function DashboardCard({
 export default function Index() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [greetingName, setGreetingName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user?.id || !isMounted) return;
+
+        const { data } = await supabase
+          .from("employee")
+          .select("first_name")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (data?.first_name && isMounted) {
+          setGreetingName(data.first_name);
+        }
+      } catch (err) {
+        console.error("[MobileAI] Profile load error:", err);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -61,11 +97,15 @@ export default function Index() {
 
       <View style={styles.banner}>
         <View>
-          <Text style={styles.greeting}>Good morning</Text>
-          <Text style={styles.greetingName}>Welcome back.</Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.greetingName}>
+            {greetingName ? `Welcome back, ${greetingName}.` : "Welcome back."}
+          </Text>
         </View>
         <View style={styles.bannerAvatar}>
-          <Text style={styles.bannerAvatarText}>JS</Text>
+          <Text style={styles.bannerAvatarText}>
+            {greetingName ? greetingName[0].toUpperCase() : "JS"}
+          </Text>
         </View>
       </View>
 

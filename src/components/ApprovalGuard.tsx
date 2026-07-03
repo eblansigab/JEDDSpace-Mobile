@@ -15,9 +15,9 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
 
   useEffect(() => {
     let isMounted = true;
+    let didNavigate = false;
 
     void (async () => {
-      setChecking(true);
       try {
         const {
           data: { session },
@@ -38,8 +38,11 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
         const isAdmin = data?.role?.toLowerCase() === "admin";
 
         if (!isAdmin && (status === "pending" || status === "rejected")) {
-          if (isMounted) setAllowed(false);
-          router.replace("/awaiting-approval");
+          if (!didNavigate) {
+            didNavigate = true;
+            if (isMounted) setAllowed(false);
+            router.replace("/awaiting-approval");
+          }
           return;
         }
 

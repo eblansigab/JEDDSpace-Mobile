@@ -1,34 +1,38 @@
 import Card from "@/components/card";
-import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 
 export function ViewNumberOfDocuments() {
-  const router = useRouter();
-  async function viewDocuments() {
-    const { data } = await supabase.storage.from("test").list("test");
-    setCount(data);
-  }
+  const [count, setCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [count, setCount] = useState<{ name: string; id?: string }[] | null>();
   useEffect(() => {
-    void viewDocuments();
+    void (async () => {
+      setLoading(true);
+      try {
+        const { count: docCount, error } = await supabase
+          .from("document")
+          .select("*", { count: "exact", head: false });
+
+        if (error) throw error;
+        setCount(docCount || 0);
+      } catch (err) {
+        console.error("[MobileAI] Document count error:", err);
+        setCount(0);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   return (
     <View>
       <Card style={{ backgroundColor: "#f9f9f9" }}>
-        <Text style={styles.infoTitle}>File Uploads</Text>
+        <Text style={styles.infoTitle}>Documents</Text>
         <Text style={styles.infoContent}>
-          There are{" "}
-          {count?.length === 1 ? count.length + " file" : (count?.length || 0) + " files"}{" "}
-          uploaded.
+          {loading ? "Loading..." : `There are ${count ?? 0} document${(count ?? 0) === 1 ? "" : "s"} uploaded.`}
         </Text>
-        <Button
-          title="Check Documents"
-          onPress={() => router.push("/documents")}
-        />
       </Card>
     </View>
   );

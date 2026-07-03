@@ -7,9 +7,20 @@ const getAuthHeaders = async () => {
     data: { session }
   } = await supabase.auth.getSession();
 
+  if (!session?.access_token) {
+    const { data: refreshed, error } = await supabase.auth.refreshSession();
+    if (error || !refreshed.session?.access_token) {
+      throw new Error('Authentication is required');
+    }
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${refreshed.session.access_token}`
+    };
+  }
+
   return {
     'Content-Type': 'application/json',
-    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+    Authorization: `Bearer ${session.access_token}`
   };
 };
 
