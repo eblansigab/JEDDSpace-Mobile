@@ -4,7 +4,8 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { getNotificationsEnabled, setNotificationsEnabled } from "@/services/notificationService";
 
 interface EmployeeProfile {
   employee_id: string;
@@ -15,6 +16,7 @@ interface EmployeeProfile {
   position: string | null;
   role: string | null;
   avatar_url: string | null;
+  username: string | null;
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
@@ -52,6 +54,7 @@ export default function Profile() {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -66,7 +69,7 @@ export default function Profile() {
 
         const { data, error } = await supabase
           .from("employee")
-          .select("employee_id, first_name, last_name, email, department, position, role, avatar_url")
+          .select("employee_id, first_name, last_name, email, department, position, role, avatar_url, username")
           .eq("user_id", session.user.id)
           .maybeSingle();
 
@@ -83,6 +86,20 @@ export default function Profile() {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const enabled = await getNotificationsEnabled();
+      setNotificationsEnabled(enabled);
+    })();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      const enabled = await getNotificationsEnabled();
+      setNotificationsEnabled(enabled);
+    })();
   }, []);
 
   const handleChangeAvatar = async () => {
@@ -190,6 +207,15 @@ export default function Profile() {
     }
   };
 
+  const handleToggleNotifications = async (value: boolean) => {
+    try {
+      await setNotificationsEnabled(value);
+      setNotificationsEnabled(value);
+    } catch (err) {
+      console.error("[MobileAI] Notification toggle error:", err);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -197,10 +223,15 @@ export default function Profile() {
         text: "Log Out",
         style: "destructive",
         onPress: async () => {
-          await clearSupabaseSession();
-          const { error } = await supabase.auth.signOut();
-          if (error) Alert.alert("Logout Error", error.message);
-          else router.replace("/login");
+          setLoading(true);
+          try {
+            await Promise.all([supabase.auth.signOut(), clearSupabaseSession()]);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            Alert.alert("Logout Error", message);
+          } finally {
+            setLoading(false);
+          }
         },
       },
     ]);
@@ -232,7 +263,10 @@ export default function Profile() {
 
             <SectionCard>
               <SectionTitle label="Contact Information" />
-              <InfoRow label="Email" value={profile?.email} />
+              <InfoRow label="Username" value={profile?.username} />
+              <Text style={{ fontSize: 12, color: "#6B7280", marginTop: -4, paddingHorizontal: 4 }}>
+                Usernames are managed by the administrator.
+              </Text>
               <InfoRow label="Department" value={profile?.department} />
               <InfoRow label="Position" value={profile?.position} />
             </SectionCard>
@@ -271,6 +305,22 @@ export default function Profile() {
               <TouchableOpacity style={[styles.primaryBtn, changingPassword && styles.primaryBtnDisabled]} onPress={handleChangePassword} disabled={changingPassword} activeOpacity={0.8}>
                 {changingPassword ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Update Password</Text>}
               </TouchableOpacity>
+            </SectionCard>
+
+            <SectionCard>
+              <SectionTitle label="Notifications" />
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.toggleTitle}>Push Notifications</Text>
+                  <Text style={styles.toggleHint}>Receive alerts and updates from JEDDSpace</Text>
+                </View>
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={handleToggleNotifications}
+                  trackColor={{ false: "#E5E7EB", true: "#1E0977" }}
+                  thumbColor={notificationsEnabled ? "#fff" : "#9CA3AF"}
+                />
+              </View>
             </SectionCard>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
@@ -321,4 +371,8 @@ const styles = StyleSheet.create({
   outlineBtnText: { color: "#1E0977", fontSize: 13, fontWeight: "600" },
   logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 8, paddingVertical: 14, marginTop: 4 },
   logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "700" },
+  toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  toggleInfo: { flex: 1, gap: 2 },
+  toggleTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
+  toggleHint: { fontSize: 12, color: "#6B7280" },
 });

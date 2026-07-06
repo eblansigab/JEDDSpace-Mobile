@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Card from "@/components/card";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
@@ -156,7 +156,7 @@ function formatDate(dateStr: string) {
   }
 }
 
-const styles = {
+const styles = StyleSheet.create({
   listContent: {
     gap: 10,
     paddingBottom: 24,
@@ -244,4 +244,4 @@ const styles = {
     color: "#9CA3AF",
     marginTop: 8,
   },
-};
+});

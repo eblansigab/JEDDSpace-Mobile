@@ -41,9 +41,7 @@ export default function AwaitingApprovalScreen() {
         text: "Sign Out",
         style: "destructive",
         onPress: async () => {
-          await clearSupabaseSession();
           await supabase.auth.signOut();
-          router.replace("/login");
         },
       },
     ]);

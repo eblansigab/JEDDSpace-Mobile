@@ -54,8 +54,8 @@ export default function Contracts() {
           contractor_id: row.contractor != null ? String(row.contractor) : undefined,
           start_date: row.start_date != null ? String(row.start_date) : undefined,
           end_date: row.end_date != null ? String(row.end_date) : undefined,
-          contract_url: row.contract_url ?? null,
-          contract_file_url: row.contract_file_url ?? null,
+          contract_url: row.contract_url != null ? String(row.contract_url) : null,
+          contract_file_url: row.contract_file_url != null ? String(row.contract_file_url) : null,
           salary: row.salary != null ? Number(row.salary) : null,
         }));
 

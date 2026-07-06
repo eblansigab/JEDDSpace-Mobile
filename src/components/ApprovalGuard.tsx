@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
 import { usePathname, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 interface ApprovalGuardProps {
@@ -8,68 +8,43 @@ interface ApprovalGuardProps {
 }
 
 export default function ApprovalGuard({ children }: ApprovalGuardProps) {
+  const { authReady, session, employee } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [checking, setChecking] = useState(true);
-  const [allowed, setAllowed] = useState(false);
+
+  const isAuthRoute = pathname === "/login" || pathname === "/sign-in";
+  const isApprovalRoute = pathname === "/awaiting-approval";
+  const status = employee?.registration_status;
+  const isAdmin = employee?.role?.toLowerCase() === "admin";
+  
+  const needsApproval = !isAdmin && (status === "pending" || status === "rejected");
+  const shouldRedirectToApproval = !isAuthRoute && !isApprovalRoute && session?.user?.id && needsApproval;
 
   useEffect(() => {
-    let isMounted = true;
-    let didNavigate = false;
+    if (!authReady) return;
 
-    void (async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    if (shouldRedirectToApproval) {
+      router.replace("/awaiting-approval");
+    }
+  }, [authReady, shouldRedirectToApproval, router]);
 
-        if (!session?.user?.id || pathname.includes("awaiting-approval")) {
-          if (isMounted) setAllowed(true);
-          return;
-        }
-
-        const { data } = await supabase
-          .from("employee")
-          .select("registration_status, role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        const status = data?.registration_status;
-        const isAdmin = data?.role?.toLowerCase() === "admin";
-
-        if (!isAdmin && (status === "pending" || status === "rejected")) {
-          if (!didNavigate) {
-            didNavigate = true;
-            if (isMounted) setAllowed(false);
-            router.replace("/awaiting-approval");
-          }
-          return;
-        }
-
-        if (isMounted) setAllowed(true);
-      } catch (err) {
-        console.error("[MobileAI] ApprovalGuard check error:", err);
-        if (isMounted) setAllowed(true);
-      } finally {
-        if (isMounted) setChecking(false);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [pathname, router]);
-
-  if (checking) {
+  if (!authReady) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#1E0977" />
-        <Text style={styles.loadingText}>Verifying access...</Text>
+        <Text style={styles.loadingText}>Loading workspace...</Text>
       </View>
     );
   }
 
-  if (!allowed) return null;
+  // Prevent rendering the protected content if we are supposed to redirect
+  if (shouldRedirectToApproval) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#1E0977" />
+      </View>
+    );
+  }
 
   return <>{children}</>;
 }

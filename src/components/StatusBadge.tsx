@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-type Status = "ongoing" | "cancelled" | "completed" | "pending_signature";
+export type Status = "ongoing" | "cancelled" | "completed" | "pending_signature";
 
 type Props = {
   status: Status;

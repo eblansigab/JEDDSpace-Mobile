@@ -11,12 +11,13 @@ const wallet = new ethers.Wallet(privateKey, provider);
 const contract_address = "0x0EC104F233A548A348c48FC7476c349A89B7b87d"
 const contract = new ethers.Contract(contract_address,test.output.abi,wallet)
 
-export async function storeHash(file,hash){
+export async function storeHash(file:any,hash:any){
+    try{
     const tx = await contract.storeHash(hash)
     await tx.wait()
 
-    const {data,error} = supabase.from("file_hash").insert({
-        filename:file.name,
+    const {data,error} = await supabase.from("file_hash").insert({
+        filename:file,
         hash:hash,
         transaction_hash: tx.hash
     })
@@ -24,10 +25,16 @@ export async function storeHash(file,hash){
     console.log(data)
 
     if(error)throw error
+    }
+    catch(err:any){
+        console.error(err)
+        throw err
+    }
 }
 
-export async function verifyHash(hash){
+export async function verifyHash(hash:any){
     const isVerified = await contract.verifyHash(hash)
     console.log(isVerified)
     return isVerified
 }
+

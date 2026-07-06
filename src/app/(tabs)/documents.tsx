@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {ethers} from "ethers"
+import {storeHash} from "../../components/contract"
 
 type DocumentItem = {
   document_id: string;
@@ -32,7 +34,7 @@ export default function Documents() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [employeeMap, setEmployeeMap] = useState<Record<string, string>>({});
-
+  const [fileType, setFileType] = useState("")
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -91,6 +93,7 @@ export default function Documents() {
       const asset = result.assets[0];
       setFileName(asset.name);
       setSelectedUri(asset.uri);
+      setFileType(asset.mimeType!)
     }
   };
 
@@ -109,11 +112,13 @@ export default function Documents() {
       const resp = await fetch(selectedUri);
       const fileBody = await resp.arrayBuffer();
       const storagePath = `${Date.now()}-${fileName}`;
+      const bytes = new Uint8Array(fileBody)
+      const hash = ethers.keccak256(bytes)
 
       const { error: uploadError } = await supabase.storage
         .from("document")
         .upload(storagePath, fileBody, {
-          contentType: "application/octet-stream",
+          contentType: fileType,
           upsert: true,
         });
 
@@ -126,10 +131,13 @@ export default function Documents() {
         title: fileName,
         file_name: fileName,
         file_path: filePath,
-        file_type: "application/octet-stream",
+        file_type: fileType,
         file_size: fileBody.byteLength,
         uploaded_by: session.user.id,
+        hash: hash,
       });
+
+      storeHash(fileName,hash)
 
       if (insertError) throw insertError;
 

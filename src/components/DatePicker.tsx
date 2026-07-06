@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type DatePickerProps = {
@@ -40,14 +40,15 @@ export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfir
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
   const [day, setDay] = useState(initial.day);
+  const initialRef = useRef(initial);
 
   useEffect(() => {
     if (!visible) return;
-    const next = initial;
+    const next = initialRef.current;
     setYear(next.year);
     setMonth(next.month);
     setDay(next.day);
-  }, [visible, initial]);
+  }, [visible]);
 
   const min = useMemo(() => {
     if (!minDate) return null;
@@ -70,7 +71,7 @@ export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfir
   }, [min, max, today]);
 
   const days = useMemo(() => {
-    const maxDay = getDaysInMonth(year, month);
+    let maxDay = getDaysInMonth(year, month);
     let minDay = 1;
     if (min && year === min.year && month === min.month) minDay = min.day;
     if (max && year === max.year && month === max.month) maxDay = max.day;
@@ -135,7 +136,7 @@ export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfir
               onPress={() => onSelect(item)}
               activeOpacity={0.7}
             >
-              <PickerItem label={String(item)} label={String(item)} selected={isSelected} />
+              <PickerItem label={String(item)} selected={isSelected} />
             </TouchableOpacity>
           );
         })}

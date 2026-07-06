@@ -340,7 +340,10 @@ export default function AiAssistantScreen() {
         type: asset.mimeType || "application/octet-stream",
         size: asset.size || 0,
       });
-      setAttachments((current) => [...current, uploaded]);
+      setAttachments((current) => [
+        ...current,
+        uploaded as { uri: string; name: string; type: string; size: number },
+      ]);
     } catch (error) {
       logAssistantError("Attachment upload failed", error, { sessionId });
     } finally {
@@ -558,7 +561,7 @@ export default function AiAssistantScreen() {
   );
 }
 
-const Pressable = ({ children, ...rest }: { children: React.ReactNode } & TouchableOpacity["props"]) => (
+const Pressable = ({ children, ...rest }: { children: React.ReactNode } & React.ComponentProps<typeof TouchableOpacity>) => (
   <TouchableOpacity activeOpacity={1} {...rest}>
     {children}
   </TouchableOpacity>
