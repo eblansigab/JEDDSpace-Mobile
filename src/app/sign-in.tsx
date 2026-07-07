@@ -12,10 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
 
 export default function SignIn() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,45 +83,45 @@ export default function SignIn() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.heading}>Create your account</Text>
-          <Text style={styles.subtitle}>Set up your workspace access in a few steps.</Text>
+          <Text style={[styles.heading, { color: colors.primary }]}>Create your account</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Set up your workspace access in a few steps.</Text>
         </View>
 
-        <Text style={styles.label}>First Name</Text>
-        <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} placeholder="First Name" placeholderTextColor="#9CA3AF" returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>First Name</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={firstName} onChangeText={setFirstName} placeholder="First Name" placeholderTextColor={colors.textMuted} returnKeyType="next" />
 
-        <Text style={styles.label}>Last Name</Text>
-        <TextInput style={styles.input} value={lastName} onChangeText={setLastName} placeholder="Last Name" placeholderTextColor="#9CA3AF" returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Last Name</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={lastName} onChangeText={setLastName} placeholder="Last Name" placeholderTextColor={colors.textMuted} returnKeyType="next" />
 
-        <Text style={styles.label}>Username</Text>
-        <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Choose a username" placeholderTextColor="#9CA3AF" autoCapitalize="none" autoCorrect={false} returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Username</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={username} onChangeText={setUsername} placeholder="Choose a username" placeholderTextColor={colors.textMuted} autoCapitalize="none" autoCorrect={false} returnKeyType="next" />
 
-        <Text style={styles.label}>Department</Text>
-        <TextInput style={styles.input} value={department} onChangeText={setDepartment} placeholder="Department" placeholderTextColor="#9CA3AF" returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Department</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={department} onChangeText={setDepartment} placeholder="Department" placeholderTextColor={colors.textMuted} returnKeyType="next" />
 
-        <Text style={styles.label}>Position</Text>
-        <TextInput style={styles.input} value={position} onChangeText={setPosition} placeholder="Position" placeholderTextColor="#9CA3AF" returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Position</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={position} onChangeText={setPosition} placeholder="Position" placeholderTextColor={colors.textMuted} returnKeyType="next" />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#9CA3AF" autoCapitalize="none" keyboardType="email-address" returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={colors.textMuted} autoCapitalize="none" keyboardType="email-address" returnKeyType="next" />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Create password" placeholderTextColor="#9CA3AF" secureTextEntry returnKeyType="next" />
+        <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={password} onChangeText={setPassword} placeholder="Create password" placeholderTextColor={colors.textMuted} secureTextEntry returnKeyType="next" />
 
-        <Text style={styles.label}>Confirm Password</Text>
-        <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" placeholderTextColor="#9CA3AF" secureTextEntry returnKeyType="done" onSubmitEditing={() => void handleSignUp()} />
+        <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
+        <TextInput style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm password" placeholderTextColor={colors.textMuted} secureTextEntry returnKeyType="done" onSubmitEditing={() => void handleSignUp()} />
 
         <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={() => void handleSignUp()} disabled={loading} activeOpacity={0.85}>
           {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.buttonText}>Create Account</Text>}
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account?</Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account?</Text>
           <TouchableOpacity onPress={() => router.push("/login")}>
-            <Text style={styles.footerLink}>Log In</Text>
+            <Text style={[styles.footerLink, { color: colors.primary }]}>Log In</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -128,21 +130,18 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#F9FAFB" },
+  flex: { flex: 1 },
   container: { paddingHorizontal: 24, paddingVertical: 32, justifyContent: "center", flexGrow: 1 },
   hero: { marginBottom: 16, gap: 6 },
-  heading: { fontSize: 24, fontWeight: "700", color: "#1E0977" },
-  subtitle: { fontSize: 14, color: "#6B7280" },
-  label: { fontSize: 14, fontWeight: "600", color: "#374151", marginTop: 12, marginBottom: 8 },
+  heading: { fontSize: 24, fontWeight: "700" },
+  subtitle: { fontSize: 14 },
+  label: { fontSize: 14, fontWeight: "600", marginTop: 12, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#111827",
-    backgroundColor: "#fff",
   },
   button: {
     backgroundColor: "#1E0977",
@@ -157,6 +156,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 6 },
-  footerText: { color: "#6B7280", fontSize: 13 },
-  footerLink: { color: "#1E0977", fontWeight: "700", fontSize: 13 },
+  footerText: { fontSize: 13 },
+  footerLink: { fontSize: 13, fontWeight: "700" },
 });

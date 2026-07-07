@@ -10,7 +10,7 @@ export default function TabLayout() {
     <ApprovalGuard>
       <Tabs
         screenOptions={{
-          headerStyle: { backgroundColor: "#1E0977" },
+          headerStyle: { backgroundColor: colors.primary },
           headerShadowVisible: false,
           headerTintColor: "#fff",
           tabBarStyle: { backgroundColor: colors.tabBar },

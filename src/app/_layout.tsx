@@ -3,12 +3,13 @@ import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
-import { ThemeProvider } from "@/context/ThemeContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 
 function RootLayoutNav() {
   const { session, authReady } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (authReady) {
@@ -31,7 +32,7 @@ function RootLayoutNav() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#1E0977" },
+        headerStyle: { backgroundColor: colors.primary },
         headerShadowVisible: false,
         headerTintColor: "#fff",
       }}

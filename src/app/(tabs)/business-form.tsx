@@ -1,7 +1,7 @@
 import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
 import { supabase } from "@/lib/supabase";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,10 +17,12 @@ import {
 } from "react-native";
 
 interface BusinessFormState {
+  project: string;
   startDate: string;
   endDate: string;
   location: string;
   companyCar: boolean;
+  carName: string;
   driverName: string;
   phoneNum: string;
 }
@@ -36,10 +38,12 @@ function isValidDate(str: string): boolean {
 export default function BusinessForm() {
   const { colors } = useTheme();
   const [form, setForm] = useState<BusinessFormState>({
+    project: "",
     startDate: "",
     endDate: "",
     location: "",
     companyCar: false,
+    carName: "",
     driverName: "",
     phoneNum: "",
   });
@@ -64,17 +68,28 @@ export default function BusinessForm() {
     })();
   }, []);
 
-  const setField = <K extends keyof BusinessFormState>(key: K, value: BusinessFormState[K]) => {
+  const setField = <K extends keyof BusinessFormState>(
+    key: K,
+    value: BusinessFormState[K],
+  ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const validate = (): string | null => {
-    if (!form.startDate || !isValidDate(form.startDate)) return "Enter a valid start date (YYYY-MM-DD).";
-    if (!form.endDate || !isValidDate(form.endDate)) return "Enter a valid end date (YYYY-MM-DD).";
-    if (new Date(form.startDate) > new Date(form.endDate)) return "Start date must be before end date.";
+    if (!form.project) return "Enter your project name";
+    if (!form.startDate || !isValidDate(form.startDate))
+      return "Enter a valid start date (YYYY-MM-DD).";
+    if (!form.endDate || !isValidDate(form.endDate))
+      return "Enter a valid end date (YYYY-MM-DD).";
+    if (new Date(form.startDate) > new Date(form.endDate))
+      return "Start date must be before end date.";
     if (!form.location.trim()) return "Please enter a location.";
-    if (form.companyCar && !form.driverName.trim()) return "Please enter the driver name when using a company car.";
-    if (form.companyCar && !form.phoneNum.trim()) return "Please enter a contact phone number.";
+    if (form.companyCar && !form.carName)
+      return "Please enter the company car information.";
+    if (form.companyCar && !form.driverName.trim())
+      return "Please enter the driver name when using a company car.";
+    if (form.companyCar && !form.phoneNum.trim())
+      return "Please enter a contact phone number.";
     return null;
   };
 
@@ -86,21 +101,27 @@ export default function BusinessForm() {
     }
 
     if (!employeeId || !userId) {
-      Alert.alert("Error", "Could not identify your employee record. Please log in again.");
+      Alert.alert(
+        "Error",
+        "Could not identify your employee record. Please log in again.",
+      );
       return;
     }
 
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase.from("businessform").insert({
-        employee_id: employeeId,
-        start_date: form.startDate,
-        end_date: form.endDate,
-        location: form.location.trim(),
-        company_car: form.companyCar,
-        driver_name: form.companyCar ? form.driverName.trim() : null,
-        phone_num: form.companyCar ? form.phoneNum.trim() : null,
-      });
+      const { error: insertError } = await supabase
+        .from("businessform")
+        .insert({
+          project_name: form.project.trim(),
+          employee_id: employeeId,
+          start_date: form.startDate,
+          end_date: form.endDate,
+          location: form.location.trim(),
+          company_car: form.companyCar ? form.carName.trim() : "Personal",
+          driver_name: form.companyCar ? form.driverName.trim() : "Personal",
+          phone_num: form.phoneNum.trim(),
+        });
 
       if (insertError) throw insertError;
 
@@ -109,10 +130,12 @@ export default function BusinessForm() {
           text: "OK",
           onPress: () => {
             setForm({
+              project: "",
               startDate: "",
               endDate: "",
               location: "",
               companyCar: false,
+              carName: "",
               driverName: "",
               phoneNum: "",
             });
@@ -140,8 +163,22 @@ export default function BusinessForm() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Official Business Form</Text>
-          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Submit your official business trip details for approval.</Text>
+          <Text style={styles.pageTitle}>Official Business Form</Text>
+          <Text style={styles.pageSubtitle}>
+            Submit your official business trip details for approval.
+          </Text>
+
+          {/* Project */}
+          <View style={styles.field}>
+            <Text style={styles.label}>Project Name *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter project name"
+              placeholderTextColor="#9CA3AF"
+              value={form.project}
+              onChangeText={(v) => setField("project", v)}
+            />
+          </View>
 
           {/* Start Date */}
           <View style={styles.field}>
@@ -184,8 +221,10 @@ export default function BusinessForm() {
           {/* Company Car toggle */}
           <View style={[styles.switchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.switchInfo}>
-              <Text style={[styles.label, { color: colors.text }]}>Company Car</Text>
-              <Text style={[styles.switchHint, { color: colors.textMuted }]}>Will a company vehicle be used?</Text>
+              <Text style={styles.label}>Company Car</Text>
+              <Text style={styles.switchHint}>
+                Will a company vehicle be used?
+              </Text>
             </View>
             <Switch
               value={form.companyCar}
@@ -199,30 +238,39 @@ export default function BusinessForm() {
           {form.companyCar && (
             <>
               <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.text }]}>Driver Name *</Text>
+                <Text style={styles.label}>Company Car *</Text>
                 <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+                  style={styles.input}
+                  placeholder="Enter the company car to use"
+                  placeholderTextColor="#9CA3AF"
+                  value={form.carName}
+                  onChangeText={(v) => setField("carName", v)}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Driver Name *</Text>
+                <TextInput
+                  style={styles.input}
                   placeholder="Enter driver's full name"
                   placeholderTextColor={colors.textMuted}
                   value={form.driverName}
                   onChangeText={(v) => setField("driverName", v)}
                 />
               </View>
-
-              <View style={styles.field}>
-                <Text style={[styles.label, { color: colors.text }]}>Phone Number *</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
-                  placeholder="Enter contact phone number"
-                  placeholderTextColor={colors.textMuted}
-                  value={form.phoneNum}
-                  onChangeText={(v) => setField("phoneNum", v)}
-                  keyboardType="phone-pad"
-                />
-              </View>
             </>
           )}
-
+          <View style={styles.field}>
+            <Text style={styles.label}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter contact phone number"
+              placeholderTextColor="#9CA3AF"
+              value={form.phoneNum}
+              onChangeText={(v) => setField("phoneNum", v)}
+              keyboardType="phone-pad"
+            />
+          </View>
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}

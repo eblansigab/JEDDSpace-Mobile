@@ -1,14 +1,29 @@
+import { useTheme } from "@/context/ThemeContext";
 import CalendarView from "@/components/CalendarView";
 import MenuDropdown from "@/components/menuDropdown";
 import { ViewNumberOfDocuments } from "@/components/ViewNumberOfDocuments";
-import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { supabase } from "@/lib/supabase";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useTheme } from "@/context/ThemeContext";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
+
+type CalendarEvent = {
+  title: string;
+  start: string;
+  end?: string;
+  color?: string;
+};
 
 function DashboardCard({
   icon,
@@ -36,11 +51,19 @@ function DashboardCard({
         </View>
         <View style={styles.cardTitles}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
-          {subtitle ? <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
+          {subtitle ? (
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+          ) : null}
         </View>
         {actionLabel && onPress ? (
-          <TouchableOpacity style={[styles.actionBtn, { borderColor: accent }]} onPress={onPress} activeOpacity={0.7}>
-            <Text style={[styles.actionBtnText, { color: accent }]}>{actionLabel}</Text>
+          <TouchableOpacity
+            style={[styles.actionBtn, { borderColor: accent }]}
+            onPress={onPress}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.actionBtnText, { color: accent }]}>
+              {actionLabel}
+            </Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -54,6 +77,7 @@ export default function Index() {
   const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [greetingName, setGreetingName] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]); // ← new
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +106,69 @@ export default function Index() {
     };
   }, []);
 
+  // ← new: mirrors web version's loadCalendarEvents
+  useEffect(() => {
+    async function loadCalendarEvents() {
+      try {
+        const [
+          { data: announcements },
+          { data: leaves },
+          { data: businessTrips },
+          { data: jobs },
+          { data: contracts },
+        ] = await Promise.all([
+          supabase.from("announcement").select("title, created_at"),
+          supabase.from("leaveform").select("start_date, end_date"),
+          supabase
+            .from("businessform")
+            .select("location, start_duration, end_duration"),
+          supabase.from("job").select("destination, start_date, end_date"),
+          supabase
+            .from("contracts")
+            .select("contract_title, start_date, end_date"),
+        ]);
+
+        const events: CalendarEvent[] = [
+          ...(announcements || []).map((item) => ({
+            title: `📢 ${item.title}`,
+            start: item.created_at,
+            color: "#D97706",
+          })),
+          ...(leaves || []).map((item) => ({
+            title: `🏖 Leave`,
+            start: item.start_date,
+            end: item.end_date,
+            color: "#059669",
+          })),
+          ...(businessTrips || []).map((item) => ({
+            title: `🧳 ${item.location}`,
+            start: item.start_duration,
+            end: item.end_duration,
+            color: "#0891B2",
+          })),
+          ...(jobs || []).map((item) => ({
+            title: `💼 ${item.destination}`,
+            start: item.start_date,
+            end: item.end_date,
+            color: "#1E0977",
+          })),
+          ...(contracts || []).map((item) => ({
+            title: `📄 ${item.contract_title}`,
+            start: item.start_date,
+            end: item.end_date,
+            color: "#7C3AED",
+          })),
+        ].filter((e) => e.start); // filter out any events with null start dates
+
+        setCalendarEvents(events);
+      } catch (err) {
+        console.error("[MobileAI] Calendar load error:", err);
+      }
+    }
+
+    loadCalendarEvents();
+  }, []);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -97,11 +184,10 @@ export default function Index() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
-
-      <View style={styles.banner}>
+      <View style={[styles.banner, { backgroundColor: colors.primary }]}>
         <View>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.greetingName}>
+          <Text style={[styles.greeting, { color: colors.textMuted }]}>{getGreeting()}</Text>
+          <Text style={[styles.greetingName, { color: "#fff" }]}>
             {greetingName ? `Welcome back, ${greetingName}.` : "Welcome back."}
           </Text>
         </View>
@@ -113,7 +199,9 @@ export default function Index() {
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -128,7 +216,11 @@ export default function Index() {
           accent="#1E0977"
         />
 
-        <DashboardCard icon="document-text-outline" title="Documents" accent="#0891B2">
+        <DashboardCard
+          icon="document-text-outline"
+          title="Documents"
+          accent="#0891B2"
+        >
           <ViewNumberOfDocuments />
         </DashboardCard>
 
@@ -156,8 +248,13 @@ export default function Index() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
-        <DashboardCard icon="calendar-outline" title="Calendar" accent="#059669">
-          <CalendarView />
+        {/* ← pass events down to CalendarView */}
+        <DashboardCard
+          icon="calendar-outline"
+          title="Calendar"
+          accent="#059669"
+        >
+          <CalendarView events={calendarEvents} />
         </DashboardCard>
       </ScrollView>
     </View>
@@ -165,18 +262,26 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 12 },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    gap: 12,
+  },
   banner: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#1E0977",
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
-  greeting: { fontSize: 13, color: "#C7D2FE", fontWeight: "500" },
-  greetingName: { fontSize: 18, color: "#fff", fontWeight: "700", marginTop: 2 },
+  greeting: { fontSize: 13, fontWeight: "500" },
+  greetingName: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 2,
+  },
   bannerAvatar: {
     width: 44,
     height: 44,
@@ -187,7 +292,12 @@ const styles = StyleSheet.create({
   },
   bannerAvatarText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   scrollContent: { gap: 10, paddingBottom: 32 },
-  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", marginBottom: -2 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: -2,
+  },
   card: {
     borderRadius: 8,
     padding: 14,
@@ -198,14 +308,38 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
-  iconBadge: { width: 42, height: 42, borderRadius: 8, justifyContent: "center", alignItems: "center" },
+  iconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   cardTitles: { flex: 1, gap: 2 },
   cardTitle: { fontSize: 14, fontWeight: "700" },
   cardSubtitle: { fontSize: 12 },
-  actionBtn: { borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  actionBtn: {
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   actionBtnText: { fontSize: 12, fontWeight: "700" },
-  cardBody: { marginTop: 12, borderTopWidth: 1, paddingTop: 12 },
-  dividerRow: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
+  cardBody: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    paddingTop: 12,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginVertical: 2,
+  },
   divider: { flex: 1, height: 1 },
-  dividerLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  dividerLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
 });

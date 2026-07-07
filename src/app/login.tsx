@@ -12,10 +12,12 @@
     TouchableOpacity,
     View,
   } from "react-native";
+  import { useTheme } from "@/context/ThemeContext";
   import { loginWithUsername } from "@/lib/authService";
 
   export default function Login() {
     const router = useRouter();
+    const { colors } = useTheme();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -52,33 +54,33 @@
     };
 
     return (
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
-            <Text style={styles.brand}>JEDDSpace</Text>
-            <Text style={styles.subtitle}>Sign in to continue to your workspace.</Text>
+            <Text style={[styles.brand, { color: colors.primary }]}>JEDDSpace</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Sign in to continue to your workspace.</Text>
           </View>
 
-          <Text style={styles.label}>Username</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Username</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
             value={username}
             onChangeText={setUsername}
             placeholder="Enter username"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             editable={!loading}
             returnKeyType="next"
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Password</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
             value={password}
             onChangeText={setPassword}
             placeholder="Enter password"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textMuted}
             secureTextEntry
             editable={!loading}
             returnKeyType="done"
@@ -96,21 +98,18 @@
   }
 
   const styles = StyleSheet.create({
-    flex: { flex: 1, backgroundColor: "#F9FAFB" },
+    flex: { flex: 1 },
     container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingVertical: 32 },
     hero: { marginBottom: 24, gap: 6 },
-    brand: { fontSize: 28, fontWeight: "800", color: "#1E0977" },
-    subtitle: { fontSize: 14, color: "#6B7280" },
-    label: { fontSize: 14, fontWeight: "600", color: "#374151", marginTop: 12, marginBottom: 8 },
+    brand: { fontSize: 28, fontWeight: "800" },
+    subtitle: { fontSize: 14 },
+    label: { fontSize: 14, fontWeight: "600", marginTop: 12, marginBottom: 8 },
     input: {
       borderWidth: 1,
-      borderColor: "#E5E7EB",
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 12,
       fontSize: 16,
-      color: "#111827",
-      backgroundColor: "#fff",
     },
     button: {
       backgroundColor: "#1E0977",
@@ -125,6 +124,6 @@
     buttonDisabled: { opacity: 0.7 },
     buttonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
     linkRow: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 18 },
-    linkText: { color: "#6B7280", fontSize: 13 },
-    linkTextBold: { color: "#1E0977", fontSize: 13, fontWeight: "700" },
+    linkText: { fontSize: 13 },
+    linkTextBold: { fontSize: 13, fontWeight: "700" },
   });

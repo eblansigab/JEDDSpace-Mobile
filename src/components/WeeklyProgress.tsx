@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { StyleSheet, Text, View } from "react-native";
 
 type TaskProgress = {
@@ -17,14 +18,15 @@ const WEEKLY_DATA: TaskProgress[] = [
 ];
 
 export default function WeeklyProgress() {
+  const { colors } = useTheme();
   const totalCompleted = WEEKLY_DATA.reduce((sum, d) => sum + d.completed, 0);
   const totalTasks = WEEKLY_DATA.reduce((sum, d) => sum + d.total, 0);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Weekly Progress</Text>
-        <Text style={styles.summary}>
+        <Text style={[styles.title, { color: colors.text }]}>Weekly Progress</Text>
+        <Text style={[styles.summary, { color: colors.textSecondary }]}>
           {totalCompleted}/{totalTasks} tasks
         </Text>
       </View>
@@ -34,19 +36,19 @@ export default function WeeklyProgress() {
           const ratio = total > 0 ? completed / total : 0;
           return (
             <View key={day} style={styles.barCol}>
-              <View style={styles.barTrack}>
+              <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
                 <View
                   style={[
                     styles.barFill,
                     {
                       height: `${Math.round(ratio * 100)}%`,
-                      backgroundColor: ratio === 1 ? "#22C55E" : ratio > 0 ? "#F59E0B" : "#E5E7EB",
+                      backgroundColor: ratio === 1 ? colors.success : ratio > 0 ? colors.warning : colors.border,
                     },
                   ]}
                 />
               </View>
-              <Text style={styles.dayLabel}>{day}</Text>
-              <Text style={styles.countLabel}>
+              <Text style={[styles.dayLabel, { color: colors.textSecondary }]}>{day}</Text>
+              <Text style={[styles.countLabel, { color: colors.textMuted }]}>
                 {total > 0 ? `${completed}/${total}` : "—"}
               </Text>
             </View>
@@ -59,11 +61,9 @@ export default function WeeklyProgress() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   titleRow: {
     flexDirection: "row",
@@ -74,11 +74,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#111827",
   },
   summary: {
     fontSize: 12,
-    color: "#6B7280",
     fontWeight: "500",
   },
   bars: {
@@ -95,7 +93,6 @@ const styles = StyleSheet.create({
   barTrack: {
     width: 20,
     height: 70,
-    backgroundColor: "#F3F4F6",
     borderRadius: 10,
     justifyContent: "flex-end",
     overflow: "hidden",
@@ -106,11 +103,9 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontSize: 10,
-    color: "#6B7280",
     fontWeight: "500",
   },
   countLabel: {
     fontSize: 9,
-    color: "#9CA3AF",
   },
 });

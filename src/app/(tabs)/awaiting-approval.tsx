@@ -72,7 +72,7 @@ export default function AwaitingApprovalScreen() {
         </Text>
         {isRejected ? (
           <View style={styles.helpBox}>
-            <Text style={styles.helpText}>If you believe this is a mistake, please reach out to HR.</Text>
+            <Text style={[styles.helpText, { color: colors.text }]}>If you believe this is a mistake, please reach out to HR.</Text>
           </View>
         ) : null}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.8}>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 16, fontWeight: "500" },
   message: { fontSize: 14, textAlign: "center", lineHeight: 21, paddingHorizontal: 8 },
   helpBox: { backgroundColor: "#FEF3C7", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#FDE68A" },
-  helpText: { fontSize: 13, color: "#92400E", textAlign: "center" },
+  helpText: { fontSize: 13, textAlign: "center" },
   signOutBtn: {
     marginTop: 8,
     backgroundColor: "#1E0977",

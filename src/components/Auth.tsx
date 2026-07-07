@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "../../lib/supabase";
 import React, { useState } from "react";
 import {
@@ -16,6 +17,7 @@ type AuthProps = {
 };
 
 export default function Auth({ navigation }: AuthProps) {
+  const { colors } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -72,26 +74,26 @@ async function signInWithEmail() {
 }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
         <TextInput
           onChangeText={(text) => setEmail(text)}
           value={email}
           placeholder="email@address.com"
           autoCapitalize="none"
-          style={styles.input}
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Password</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
         <TextInput
           onChangeText={(text) => setPassword(text)}
           value={password}
           secureTextEntry={true}
           placeholder="Password"
           autoCapitalize="none"
-          style={styles.input}
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
         />
       </View>
       <View style={[styles.verticallySpaced, styles.mt20]}>

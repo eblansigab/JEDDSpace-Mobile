@@ -114,7 +114,7 @@ export default function Contracts() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E0977" />
-        <Text style={styles.loadingText}>Loading contracts...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading contracts...</Text>
       </View>
     );
   }
@@ -145,19 +145,19 @@ export default function Contracts() {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.detailsGrid}>
-          <DetailRow label="Contractor" value={name} />
-          {item.salary != null && <DetailRow label="Salary" value={`₱${item.salary.toLocaleString()}`} />}
+          <DetailRow label="Contractor" value={name} colors={colors} />
+          {item.salary != null && <DetailRow label="Salary" value={`₱${item.salary.toLocaleString()}`} colors={colors} />}
           {item.start_date ? (
-            <DetailRow label="Start Date" value={item.start_date} />
+            <DetailRow label="Start Date" value={item.start_date} colors={colors} />
           ) : null}
           {item.end_date ? (
-            <DetailRow label="End Date" value={item.end_date} />
+            <DetailRow label="End Date" value={item.end_date} colors={colors} />
           ) : null}
           {item.contract_url ? (
-            <DetailRow label="Contract URL" value={item.contract_url} />
+            <DetailRow label="Contract URL" value={item.contract_url} colors={colors} />
           ) : null}
           {item.contract_file_url ? (
-            <DetailRow label="File URL" value={item.contract_file_url} />
+            <DetailRow label="File URL" value={item.contract_file_url} colors={colors} />
           ) : null}
         </View>
       </Card>
@@ -186,7 +186,7 @@ export default function Contracts() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value?: string }) {
+function DetailRow({ label, value, colors }: { label: string; value?: string; colors: ReturnType<typeof useTheme>["colors"] }) {
   return (
     <View style={styles.detailRow}>
       <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>

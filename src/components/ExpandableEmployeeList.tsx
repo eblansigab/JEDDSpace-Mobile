@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export default function ExpandableEmployeeList({ employees }: Props) {
+  const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -23,32 +25,32 @@ export default function ExpandableEmployeeList({ employees }: Props) {
         onPress={() => setExpanded((prev) => !prev)}
         activeOpacity={0.7}
       >
-        <Text style={styles.headerText}>
+        <Text style={[styles.headerText, { color: colors.text }]}>
           Assigned Employees ({employees.length})
         </Text>
-        <Text style={styles.chevron}>{expanded ? "▲" : "▼"}</Text>
+        <Text style={[styles.chevron, { color: colors.textMuted }]}>{expanded ? "▲" : "▼"}</Text>
       </TouchableOpacity>
 
       {expanded && (
         <View style={styles.list}>
           {employees.map((emp) => (
-            <View key={emp.id} style={styles.employeeCard}>
+            <View key={emp.id} style={[styles.employeeCard, { backgroundColor: colors.background }]}>
               <View style={styles.avatarRow}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
+                <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+                  <Text style={[styles.avatarText, { color: colors.primary }]}>
                     {emp.firstName[0]}{emp.lastName[0]}
                   </Text>
                 </View>
                 <View style={styles.nameBlock}>
-                  <Text style={styles.name}>
+                  <Text style={[styles.name, { color: colors.text }]}>
                     {emp.firstName} {emp.lastName}
                   </Text>
-                  <Text style={styles.empId}>{emp.id}</Text>
+                  <Text style={[styles.empId, { color: colors.textMuted }]}>{emp.id}</Text>
                 </View>
               </View>
               <View style={styles.tagsRow}>
-                <Tag label={emp.position} />
-                <Tag label={emp.department} muted />
+                <Tag label={emp.position} colors={colors} />
+                <Tag label={emp.department} muted colors={colors} />
               </View>
             </View>
           ))}
@@ -58,10 +60,10 @@ export default function ExpandableEmployeeList({ employees }: Props) {
   );
 }
 
-function Tag({ label, muted = false }: { label: string; muted?: boolean }) {
+function Tag({ label, muted = false, colors }: { label: string; muted?: boolean; colors: ReturnType<typeof useTheme>["colors"] }) {
   return (
-    <View style={[styles.tag, muted && styles.tagMuted]}>
-      <Text style={[styles.tagText, muted && styles.tagTextMuted]}>{label}</Text>
+    <View style={[styles.tag, muted && [styles.tagMuted, { backgroundColor: colors.border }]]}>
+      <Text style={[styles.tagText, { color: colors.primary }, muted && [styles.tagTextMuted, { color: colors.textSecondary }]]}>{label}</Text>
     </View>
   );
 }
@@ -78,18 +80,15 @@ const styles = StyleSheet.create({
   headerText: {
     fontWeight: "600",
     fontSize: 13,
-    color: "#374151",
   },
   chevron: {
     fontSize: 10,
-    color: "#6B7280",
   },
   list: {
     marginTop: 10,
     gap: 10,
   },
   employeeCard: {
-    backgroundColor: "#F9FAFB",
     borderRadius: 8,
     padding: 10,
     gap: 8,
@@ -103,14 +102,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#E0E7FF",
     justifyContent: "center",
     alignItems: "center",
   },
   avatarText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#4F46E5",
   },
   nameBlock: {
     flex: 1,
@@ -118,11 +115,9 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#111827",
   },
   empId: {
     fontSize: 11,
-    color: "#9CA3AF",
     marginTop: 1,
   },
   tagsRow: {
@@ -131,18 +126,18 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   tag: {
-    backgroundColor: "#EEF2FF",
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
+    backgroundColor: "#EEF2FF",
   },
   tagMuted: {
     backgroundColor: "#F3F4F6",
   },
   tagText: {
     fontSize: 11,
-    color: "#4F46E5",
     fontWeight: "500",
+    color: "#4F46E5",
   },
   tagTextMuted: {
     color: "#6B7280",

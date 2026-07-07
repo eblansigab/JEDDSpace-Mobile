@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -24,6 +25,7 @@ function pad(n: number) {
 }
 
 export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfirm }: DatePickerProps) {
+  const { colors } = useTheme();
   const today = useMemo(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
@@ -103,7 +105,7 @@ export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfir
   };
 
   const PickerItem = ({ label, selected }: { label: string; selected: boolean }) => (
-    <Text style={[styles.pickerItem, selected && styles.pickerItemSelected]}>{label}</Text>
+    <Text style={[styles.pickerItem, selected && [styles.pickerItemSelected, { color: colors.primary }]]}>{label}</Text>
   );
 
   const Column = ({
@@ -148,31 +150,31 @@ export function DatePicker({ visible, value, minDate, maxDate, onClose, onConfir
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>Select Date</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Select Date</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity onPress={onClose} hitSlop={12}>
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Text style={[styles.cancelText, { color: colors.textMuted }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleConfirm} hitSlop={12}>
-                <Text style={styles.confirmText}>Done</Text>
+                <Text style={[styles.confirmText, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.body}>
             <View style={styles.columnsRow}>
               <View style={styles.columnWrap}>
-                <Text style={styles.columnHeader}>Year</Text>
+                <Text style={[styles.columnHeader, { color: colors.textMuted }]}>Year</Text>
               </View>
               <View style={styles.columnWrap}>
-                <Text style={styles.columnHeader}>Month</Text>
+                <Text style={[styles.columnHeader, { color: colors.textMuted }]}>Month</Text>
               </View>
               <View style={styles.columnWrap}>
-                <Text style={styles.columnHeader}>Day</Text>
+                <Text style={[styles.columnHeader, { color: colors.textMuted }]}>Day</Text>
               </View>
             </View>
 
@@ -281,7 +283,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 24,

@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderStyle: "dashed",
   },
-  uploadBtnText: { fontSize: 13, fontWeight: "600", color: "#1E0977" },
+  uploadBtnText: { fontSize: 13, fontWeight: "600" },
   removeFile: { fontSize: 12, color: "#EF4444", marginTop: 4, textAlign: "center" },
   submitBtn: {
     backgroundColor: "#1E0977",

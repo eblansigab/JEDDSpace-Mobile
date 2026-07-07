@@ -2,6 +2,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { usePathname, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ApprovalGuardProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
   const { authReady, session, employee } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { colors } = useTheme();
 
   const isAuthRoute = pathname === "/login" || pathname === "/sign-in";
   const isApprovalRoute = pathname === "/awaiting-approval";
@@ -30,9 +32,9 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
 
   if (!authReady) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#1E0977" />
-        <Text style={styles.loadingText}>Loading workspace...</Text>
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading workspace...</Text>
       </View>
     );
   }
@@ -40,8 +42,8 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
   // Prevent rendering the protected content if we are supposed to redirect
   if (shouldRedirectToApproval) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#1E0977" />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -54,8 +56,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
     gap: 12,
   },
-  loadingText: { fontSize: 14, color: "#6B7280" },
+  loadingText: { fontSize: 14 },
 });

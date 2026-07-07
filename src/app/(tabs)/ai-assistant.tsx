@@ -466,9 +466,9 @@ export default function AiAssistantScreen() {
       />
 
       {loading && (
-        <View style={styles.statusPill}>
-          <ActivityIndicator size="small" color="#1E0977" />
-          <Text style={styles.statusText}>{loadingStatus || "Thinking..."}</Text>
+        <View style={[styles.statusPill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.statusText, { color: colors.textSecondary }]}>{loadingStatus || "Thinking..."}</Text>
         </View>
       )}
 
