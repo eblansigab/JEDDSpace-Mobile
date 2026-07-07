@@ -1,7 +1,12 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require("expo/metro-config");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
-config.resolver.assetExts.push('wasm');
+config.resolver.extraNodeModules = {
+  crypto: require.resolve("react-native-crypto"),
+  stream: require.resolve("stream-browserify"),
+  buffer: require.resolve("buffer"),
+};
+config.resolver.assetExts.push("wasm");
 module.exports = config;
