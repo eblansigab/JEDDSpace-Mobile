@@ -118,7 +118,7 @@ export default function BusinessForm() {
           location: form.location.trim(),
           company_car: form.companyCar ? form.carName.trim() : "Personal",
           driver_name: form.companyCar ? form.driverName.trim() : "Personal",
-          phone_num: form.companyCar ? form.phoneNum.trim() : "Personal",
+          phone_num: form.phoneNum.trim(),
         });
 
       if (insertError) throw insertError;
@@ -256,21 +256,19 @@ export default function BusinessForm() {
                   onChangeText={(v) => setField("driverName", v)}
                 />
               </View>
-
-              <View style={styles.field}>
-                <Text style={styles.label}>Phone Number *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter contact phone number"
-                  placeholderTextColor="#9CA3AF"
-                  value={form.phoneNum}
-                  onChangeText={(v) => setField("phoneNum", v)}
-                  keyboardType="phone-pad"
-                />
-              </View>
             </>
           )}
-
+          <View style={styles.field}>
+            <Text style={styles.label}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter contact phone number"
+              placeholderTextColor="#9CA3AF"
+              value={form.phoneNum}
+              onChangeText={(v) => setField("phoneNum", v)}
+              keyboardType="phone-pad"
+            />
+          </View>
           {/* Submit */}
           <TouchableOpacity
             style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
