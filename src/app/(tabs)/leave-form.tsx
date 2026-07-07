@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
@@ -46,6 +47,7 @@ function isValidDate(str: string): boolean {
 }
 
 export default function LeaveForm() {
+  const { colors } = useTheme();
   const [form, setForm] = useState<LeaveFormState>({
     leaveType: "",
     startDate: "",
@@ -189,7 +191,7 @@ export default function LeaveForm() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.container}>
@@ -199,18 +201,18 @@ export default function LeaveForm() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.pageTitle}>Leave Form</Text>
-          <Text style={styles.pageSubtitle}>Fill in your leave details and submit for approval.</Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Leave Form</Text>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Fill in your leave details and submit for approval.</Text>
 
           {/* Leave Type */}
           <View style={styles.field}>
-            <Text style={styles.label}>Type of Leave *</Text>
-            <View style={styles.pickerWrapper}>
+            <Text style={[styles.label, { color: colors.text }]}>Type of Leave *</Text>
+            <View style={[styles.pickerWrapper, { borderColor: colors.border }]}>
               <Picker
                 selectedValue={form.leaveType}
                 onValueChange={(v) => setField("leaveType", v as LeaveType)}
                 mode="dropdown"
-                style={styles.picker}
+                style={[styles.picker, { color: colors.text }]}
               >
                 {LEAVE_TYPES.map((lt) => (
                   <Picker.Item key={lt.value} label={lt.label} value={lt.value} enabled={lt.value !== "" || form.leaveType === ""} />
@@ -221,11 +223,11 @@ export default function LeaveForm() {
 
           {/* Start Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>Start Date * (YYYY-MM-DD)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Start Date * (YYYY-MM-DD)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="e.g. 2025-08-01"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.startDate}
               onChangeText={(v) => setField("startDate", v)}
               keyboardType="numeric"
@@ -234,11 +236,11 @@ export default function LeaveForm() {
 
           {/* End Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>End Date * (YYYY-MM-DD)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>End Date * (YYYY-MM-DD)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="e.g. 2025-08-03"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.endDate}
               onChangeText={(v) => setField("endDate", v)}
               keyboardType="numeric"
@@ -248,16 +250,16 @@ export default function LeaveForm() {
           {/* Sick Leave extras */}
           {form.leaveType === "SL" && (
             <>
-              <View style={styles.sickBanner}>
-                <Text style={styles.sickBannerText}>🤒 Sick Leave — Additional Fields Required</Text>
+              <View style={[styles.sickBanner, { backgroundColor: colors.warning, borderColor: colors.warning }]}>
+                <Text style={[styles.sickBannerText, { color: colors.text }]}>🤒 Sick Leave — Additional Fields Required</Text>
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Date Became Sick * (YYYY-MM-DD)</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Date Became Sick * (YYYY-MM-DD)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="e.g. 2025-07-30"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   value={form.dateBecameSick}
                   onChangeText={(v) => setField("dateBecameSick", v)}
                   keyboardType="numeric"
@@ -265,11 +267,11 @@ export default function LeaveForm() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Date Returned to Work * (YYYY-MM-DD)</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Date Returned to Work * (YYYY-MM-DD)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="e.g. 2025-08-04"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   value={form.dateReturnedToWork}
                   onChangeText={(v) => setField("dateReturnedToWork", v)}
                   keyboardType="numeric"
@@ -277,9 +279,9 @@ export default function LeaveForm() {
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Medical Certificate (optional)</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Medical Certificate (optional)</Text>
                 <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} activeOpacity={0.7}>
-                  <Text style={styles.uploadBtnText}>
+                  <Text style={[styles.uploadBtnText, { color: colors.primary }]}>
                     {form.medicalCertificate ? `✓ ${form.medicalCertificate.name}` : "📎 Attach Medical Certificate"}
                   </Text>
                 </TouchableOpacity>
@@ -294,11 +296,11 @@ export default function LeaveForm() {
 
           {/* Reason */}
           <View style={styles.field}>
-            <Text style={styles.label}>Reason *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Reason *</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="Enter reason for leave"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.reason}
               onChangeText={(v) => setField("reason", v)}
               multiline
@@ -328,41 +330,34 @@ export default function LeaveForm() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#F9FAFB" },
+  flex: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 12 },
   scrollContent: { gap: 4, paddingBottom: 40 },
-  pageTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  pageSubtitle: { fontSize: 13, color: "#6B7280", marginBottom: 8 },
+  pageTitle: { fontSize: 20, fontWeight: "700" },
+  pageSubtitle: { fontSize: 13, marginBottom: 8 },
   field: { gap: 4, marginBottom: 8 },
-  label: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  label: { fontSize: 13, fontWeight: "600" },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
   },
   textArea: { height: 100, textAlignVertical: "top" },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
-    backgroundColor: "#fff",
     overflow: "hidden",
   },
-  picker: { height: 52, color: "#111827" },
+  picker: { height: 52 },
   sickBanner: {
-    backgroundColor: "#FEF3C7",
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
-    borderColor: "#FDE68A",
     marginBottom: 4,
   },
-  sickBannerText: { fontSize: 13, color: "#92400E", fontWeight: "600" },
+  sickBannerText: { fontSize: 13, fontWeight: "600" },
   uploadBtn: {
     borderWidth: 1.5,
     borderColor: "#1E0977",
@@ -372,7 +367,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderStyle: "dashed",
   },
-  uploadBtnText: { fontSize: 13, color: "#1E0977", fontWeight: "600" },
+  uploadBtnText: { fontSize: 13, fontWeight: "600", color: "#1E0977" },
   removeFile: { fontSize: 12, color: "#EF4444", marginTop: 4, textAlign: "center" },
   submitBtn: {
     backgroundColor: "#1E0977",

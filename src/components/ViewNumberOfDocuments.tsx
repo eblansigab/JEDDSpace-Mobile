@@ -2,8 +2,10 @@ import Card from "@/components/card";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "@/context/ThemeContext";
 
 export function ViewNumberOfDocuments() {
+  const { colors } = useTheme();
   const [count, setCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,9 +30,9 @@ export function ViewNumberOfDocuments() {
 
   return (
     <View>
-      <Card style={{ backgroundColor: "#f9f9f9" }}>
-        <Text style={styles.infoTitle}>Documents</Text>
-        <Text style={styles.infoContent}>
+      <Card style={{ backgroundColor: colors.surface }}>
+        <Text style={[styles.infoTitle, { color: colors.text }]}>Documents</Text>
+        <Text style={[styles.infoContent, { color: colors.textSecondary }]}>
           {loading ? "Loading..." : `There are ${count ?? 0} document${(count ?? 0) === 1 ? "" : "s"} uploaded.`}
         </Text>
       </Card>
@@ -39,18 +41,10 @@ export function ViewNumberOfDocuments() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    gap: 24,
-    backgroundColor: "#fff",
-  },
   infoTitle: {
     fontSize: 16,
     fontWeight: "bold",
     lineHeight: 20,
-    color: "#1E0977",
     paddingBottom: 8,
   },
   infoContent: {

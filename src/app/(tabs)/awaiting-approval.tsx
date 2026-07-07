@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import { clearSupabaseSession, supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -7,6 +8,7 @@ type RegistrationStatus = "pending" | "rejected" | "approved" | null;
 
 export default function AwaitingApprovalScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [status, setStatus] = useState<RegistrationStatus>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState<string | null>(null);
@@ -58,12 +60,12 @@ export default function AwaitingApprovalScreen() {
   const isRejected = status === "rejected";
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.card, { backgroundColor: colors.surface }]}>
         <Text style={[styles.statusIcon, isRejected && styles.statusIconRejected]}>{isRejected ? "!" : "..."}</Text>
-        <Text style={styles.heading}>{isRejected ? "Access Denied" : "Awaiting Approval"}</Text>
-        {name ? <Text style={styles.greeting}>Hi, {name}.</Text> : null}
-        <Text style={styles.message}>
+        <Text style={[styles.heading, { color: colors.text }]}>{isRejected ? "Access Denied" : "Awaiting Approval"}</Text>
+        {name ? <Text style={[styles.greeting, { color: colors.textSecondary }]}>Hi, {name}.</Text> : null}
+        <Text style={[styles.message, { color: colors.textSecondary }]}>
           {isRejected
             ? "Your registration request has been rejected. Please contact your administrator for assistance."
             : "Your account registration is currently under review. You will be notified once an administrator approves your access."}
@@ -82,10 +84,9 @@ export default function AwaitingApprovalScreen() {
 }
 
 const styles = StyleSheet.create({
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F9FAFB" },
-  container: { flex: 1, backgroundColor: "#F9FAFB", justifyContent: "center", padding: 24 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1, justifyContent: "center", padding: 24 },
   card: {
-    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 28,
     alignItems: "center",
@@ -108,9 +109,9 @@ const styles = StyleSheet.create({
     lineHeight: 52,
   },
   statusIconRejected: { backgroundColor: "#FEF2F2", color: "#DC2626" },
-  heading: { fontSize: 22, fontWeight: "700", color: "#111827", textAlign: "center" },
-  greeting: { fontSize: 16, color: "#6B7280", fontWeight: "500" },
-  message: { fontSize: 14, color: "#6B7280", textAlign: "center", lineHeight: 21, paddingHorizontal: 8 },
+  heading: { fontSize: 22, fontWeight: "700", textAlign: "center" },
+  greeting: { fontSize: 16, fontWeight: "500" },
+  message: { fontSize: 14, textAlign: "center", lineHeight: 21, paddingHorizontal: 8 },
   helpBox: { backgroundColor: "#FEF3C7", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#FDE68A" },
   helpText: { fontSize: 13, color: "#92400E", textAlign: "center" },
   signOutBtn: {

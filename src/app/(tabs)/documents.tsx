@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import Card from "@/components/card";
 import MenuDropdown from "@/components/menuDropdown";
 import { supabase } from "@/lib/supabase";
@@ -27,6 +28,7 @@ type DocumentItem = {
 };
 
 export default function Documents() {
+  const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [fileName, setFileName] = useState("");
   const [selectedUri, setSelectedUri] = useState<string | null>(null);
@@ -175,19 +177,20 @@ export default function Documents() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
       <TextInput
-        style={styles.search}
+        style={[styles.search, { borderColor: colors.border, color: colors.text }]}
         placeholder="Search documents..."
+        placeholderTextColor={colors.textMuted}
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
 
-      <TouchableOpacity style={styles.pickBtn} onPress={pickFile} activeOpacity={0.8}>
-        <Text style={styles.pickBtnText}>Choose File</Text>
+      <TouchableOpacity style={[styles.pickBtn, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={pickFile} activeOpacity={0.8}>
+        <Text style={[styles.pickBtnText, { color: colors.text }]}>Choose File</Text>
       </TouchableOpacity>
-      {fileName ? <Text style={styles.fileName}>Selected: {fileName}</Text> : null}
+      {fileName ? <Text style={[styles.fileName, { color: colors.textSecondary }]}>Selected: {fileName}</Text> : null}
 
       <TouchableOpacity
         style={[styles.uploadBtn, (!fileName || !selectedUri || uploading) && styles.uploadBtnDisabled]}
@@ -208,17 +211,17 @@ export default function Documents() {
         contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No documents found.</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No documents found.</Text>
           </View>
         }
         renderItem={({ item }) => (
           <Card>
-            <Text style={styles.name}>{item.title || item.file_name || "Untitled"}</Text>
-            <Text style={styles.meta}>
+            <Text style={[styles.name, { color: colors.text }]}>{item.title || item.file_name || "Untitled"}</Text>
+            <Text style={[styles.meta, { color: colors.textSecondary }]}>
               Uploaded by {employeeMap[item.uploaded_by || ""] || "Unknown"} • {formatDate(item.created_at)}
             </Text>
             {item.file_type ? (
-              <Text style={styles.meta}>Type: {item.file_type}</Text>
+              <Text style={[styles.meta, { color: colors.textSecondary }]}>Type: {item.file_type}</Text>
             ) : null}
           </Card>
         )}
@@ -233,37 +236,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 12,
-    backgroundColor: "#fff",
   },
-  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#fff" },
-  loadingText: { fontSize: 14, color: "#6B7280" },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  loadingText: { fontSize: 14 },
   search: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   pickBtn: {
-    backgroundColor: "#F3F4F6",
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
-  pickBtnText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-  fileName: { fontSize: 13, color: "#6B7280" },
+  pickBtnText: { fontSize: 14, fontWeight: "600" },
+  fileName: { fontSize: 13 },
   uploadBtn: {
-    backgroundColor: "#1E0977",
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: "center",
   },
   uploadBtnDisabled: { opacity: 0.6 },
   uploadBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  name: { fontSize: 16, fontWeight: "600", color: "#1E0977", marginBottom: 4 },
-  meta: { fontSize: 12, color: "#666" },
+  name: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
+  meta: { fontSize: 12 },
   emptyState: { alignItems: "center", paddingTop: 40 },
-  emptyText: { fontSize: 14, color: "#9CA3AF" },
+  emptyText: { fontSize: 14 },
 });

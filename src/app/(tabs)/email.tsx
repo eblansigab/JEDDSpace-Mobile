@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useRef, useState } from "react";
@@ -47,6 +48,7 @@ function getInitials(name: string) {
 const AVATAR_COLORS = ["#4F46E5", "#0891B2", "#059669", "#D97706", "#DC2626"];
 
 export default function Emails() {
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>("inbox");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmail, setSelectedEmail] = useState<EmailRow | null>(null);
@@ -301,7 +303,7 @@ export default function Emails() {
         onPress={() => handleSelectEmail(item)}
         activeOpacity={0.7}
       >
-        {!item.is_read && <View style={styles.unreadDot} />}
+        {!item.is_read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
         <View style={[styles.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
@@ -324,54 +326,54 @@ export default function Emails() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
 
       {/* Top bar */}
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>Messages</Text>
+        <Text style={[styles.pageTitle, { color: colors.text }]}>Messages</Text>
         <TouchableOpacity
-          style={styles.composeBtn}
+          style={[styles.composeBtn, { backgroundColor: colors.primary }]}
           onPress={() => setShowCompose(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.composeBtnText}>✏  Compose</Text>
+          <Text style={[styles.composeBtnText, { color: "#fff" }]}>✏  Compose</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search */}
-      <View style={styles.searchWrap}>
+      <View style={[styles.searchWrap, { borderColor: colors.border, backgroundColor: colors.surface }]}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.text }]}
           placeholder="Search messages..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={8}>
-            <Text style={styles.clearIcon}>✕</Text>
+            <Text style={[styles.clearIcon, { color: colors.textSecondary }]}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabSidebar}>
+      <View style={[styles.tabSidebar, { borderColor: colors.border }]}>
         {TABS.map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}
             onPress={() => setActiveTab(tab.key)}
             activeOpacity={0.7}
           >
             <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive, { color: colors.text }]}>
               {tab.label}
             </Text>
             {tab.count !== undefined && tab.count > 0 && (
-              <View style={styles.badgeFilled}>
-                <Text style={styles.badgeText}>{tab.count}</Text>
+              <View style={[styles.badgeFilled, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.badgeText, { color: "#fff" }]}>{tab.count}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -394,7 +396,7 @@ export default function Emails() {
             <Text style={styles.emptyText}>No messages here.</Text>
           </View>
         }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
         renderItem={renderItem}
         ListHeaderComponent={<View style={{ height: 8 }} />}
         refreshing={loading}
@@ -403,31 +405,31 @@ export default function Emails() {
 
       {/* Read Email Modal */}
       <Modal visible={!!selectedEmail} animationType="slide" onRequestClose={() => setSelectedEmail(null)}>
-        <View style={styles.modalScreen}>
-          <View style={styles.modalHeader}>
+        <View style={[styles.modalScreen, { backgroundColor: colors.surface }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <TouchableOpacity onPress={() => setSelectedEmail(null)} hitSlop={12}>
-              <Text style={styles.backBtn}>← Back</Text>
+              <Text style={[styles.backBtn, { color: colors.primary }]}>← Back</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleReply} hitSlop={12}>
-              <Text style={styles.replyBtn}>Reply</Text>
+              <Text style={[styles.replyBtn, { color: colors.primary }]}>Reply</Text>
             </TouchableOpacity>
           </View>
           {selectedEmail && (
             <ScrollView contentContainerStyle={styles.emailDetail}>
-              <Text style={styles.detailSubject}>{selectedEmail.subject}</Text>
+              <Text style={[styles.detailSubject, { color: colors.text }]}>{selectedEmail.subject}</Text>
               <View style={styles.detailMeta}>
                 <View style={[styles.avatar, { backgroundColor: AVATAR_COLORS[selectedEmail.sender_id % AVATAR_COLORS.length] }]}>
                   <Text style={styles.avatarText}>{getInitials(nameMap[selectedEmail.sender_id] || "Unknown")}</Text>
                 </View>
                 <View>
-                  <Text style={styles.detailSender}>{nameMap[selectedEmail.sender_id] || `Employee ${selectedEmail.sender_id}`}</Text>
-                  <Text style={styles.detailDate}>
+                  <Text style={[styles.detailSender, { color: colors.text }]}>{nameMap[selectedEmail.sender_id] || `Employee ${selectedEmail.sender_id}`}</Text>
+                  <Text style={[styles.detailDate, { color: colors.textMuted }]}>
                     {selectedEmail.created_at ? new Date(selectedEmail.created_at).toLocaleString() : ""}
                   </Text>
                 </View>
               </View>
-              <View style={styles.detailDivider} />
-              <Text style={styles.detailBody}>{selectedEmail.message_body}</Text>
+              <View style={[styles.detailDivider, { backgroundColor: colors.border }]} />
+              <Text style={[styles.detailBody, { color: colors.textSecondary }]}>{selectedEmail.message_body}</Text>
             </ScrollView>
           )}
         </View>
@@ -440,11 +442,11 @@ export default function Emails() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable style={styles.composeBackdrop} onPress={resetCompose} />
-          <View style={styles.composeSheet}>
-            <View style={styles.composeHeader}>
-              <Text style={styles.composeTitle}>{subject.startsWith("Re:") ? "Reply" : "New Internal Message"}</Text>
+          <View style={[styles.composeSheet, { backgroundColor: colors.surface }]}>
+            <View style={[styles.composeHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.composeTitle, { color: colors.text }]}>{subject.startsWith("Re:") ? "Reply" : "New Internal Message"}</Text>
               <TouchableOpacity onPress={resetCompose} hitSlop={12}>
-                <Text style={styles.composeClose}>✕</Text>
+                <Text style={[styles.composeClose, { color: colors.textMuted }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -454,26 +456,26 @@ export default function Emails() {
               showsVerticalScrollIndicator={false}
             >
               {/* Recipient */}
-              <Text style={styles.composeLabel}>Recipient Employee</Text>
+              <Text style={[styles.composeLabel, { color: colors.text }]}>Recipient Employee</Text>
               <TouchableOpacity
-                style={styles.recipientSelector}
+                style={[styles.recipientSelector, { borderColor: colors.border, backgroundColor: colors.background }]}
                 onPress={() => setShowRecipientPicker((p) => !p)}
                 activeOpacity={0.8}
               >
-                <Text style={recipientName ? styles.recipientSelected : styles.recipientPlaceholder}>
+                <Text style={[recipientName ? styles.recipientSelected : styles.recipientPlaceholder, { color: recipientName ? colors.text : colors.textMuted }]}>
                   {recipientName || "-- Select Recipient --"}
                 </Text>
-                <Text style={styles.chevron}>{showRecipientPicker ? "▲" : "▼"}</Text>
+                <Text style={[styles.chevron, { color: colors.textSecondary }]}>{showRecipientPicker ? "▲" : "▼"}</Text>
               </TouchableOpacity>
 
               {showRecipientPicker && (
-                <View style={styles.recipientPickerContainer}>
-                  <View style={styles.recipientSearchWrap}>
+                <View style={[styles.recipientPickerContainer, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                  <View style={[styles.recipientSearchWrap, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
                     <Text style={styles.recipientSearchIcon}>🔍</Text>
                     <TextInput
-                      style={styles.recipientSearchInput}
+                      style={[styles.recipientSearchInput, { color: colors.text }]}
                       placeholder="Search employees..."
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={colors.textMuted}
                       value={recipientQuery}
                       onChangeText={setRecipientQuery}
                     />
@@ -495,7 +497,7 @@ export default function Emails() {
                         return (
                           <TouchableOpacity
                             key={emp.employee_id}
-                            style={styles.recipientOption}
+                            style={[styles.recipientOption, { borderBottomColor: colors.border }]}
                             onPress={() => {
                               setRecipientEmail(emp.email);
                               setRecipientName(label);
@@ -506,7 +508,7 @@ export default function Emails() {
                             <View style={[styles.recipientAvatar, { backgroundColor: AVATAR_COLORS[emp.employee_id % AVATAR_COLORS.length] }]}>
                               <Text style={styles.avatarText}>{initials}</Text>
                             </View>
-                            <Text style={styles.recipientOptionText}>{label}</Text>
+                            <Text style={[styles.recipientOptionText, { color: colors.text }]}>{label}</Text>
                           </TouchableOpacity>
                         );
                       })
@@ -515,20 +517,20 @@ export default function Emails() {
                 </View>
               )}
 
-              <Text style={styles.composeLabel}>Subject</Text>
+              <Text style={[styles.composeLabel, { color: colors.text }]}>Subject</Text>
               <TextInput
-                style={styles.composeInput}
+                style={[styles.composeInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 placeholder="Enter subject"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
                 value={subject}
                 onChangeText={setSubject}
               />
 
-              <Text style={styles.composeLabel}>Message Body</Text>
+              <Text style={[styles.composeLabel, { color: colors.text }]}>Message Body</Text>
               <TextInput
-                style={styles.composeTextArea}
+                style={[styles.composeTextArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 placeholder="Write your message here..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
                 value={body}
                 onChangeText={setBody}
                 multiline
@@ -537,11 +539,11 @@ export default function Emails() {
 
               <View style={styles.composeActions}>
                 <TouchableOpacity
-                  style={styles.cancelBtn}
+                  style={[styles.cancelBtn, { borderColor: colors.border }]}
                   onPress={resetCompose}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
@@ -565,81 +567,81 @@ export default function Emails() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, backgroundColor: "#fff", gap: 12 },
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 12 },
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  pageTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  composeBtn: { backgroundColor: "#1E0977", borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
-  composeBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
-  searchWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, gap: 8, backgroundColor: "#F9FAFB" },
+  pageTitle: { fontSize: 22, fontWeight: "700" },
+  composeBtn: { borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
+  composeBtnText: { fontSize: 13, fontWeight: "600", color: "#fff" },
+  searchWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   searchIcon: { fontSize: 13 },
-  searchInput: { flex: 1, fontSize: 14, color: "#111827" },
-  clearIcon: { fontSize: 12, color: "#9CA3AF", fontWeight: "600" },
-  tabSidebar: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12, overflow: "hidden" },
-  tabItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderBottomWidth: 1, borderBottomColor: "#F3F4F6", backgroundColor: "#fff" },
+  searchInput: { flex: 1, fontSize: 14 },
+  clearIcon: { fontSize: 12, fontWeight: "600" },
+  tabSidebar: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
+  tabItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
   tabItemActive: { backgroundColor: "#EEF2FF" },
   tabIcon: { fontSize: 16, width: 22, textAlign: "center" },
-  tabLabel: { flex: 1, fontSize: 14, fontWeight: "500", color: "#374151" },
+  tabLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
   tabLabelActive: { color: "#1E0977", fontWeight: "700" },
-  badgeFilled: { backgroundColor: "#1E0977", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, minWidth: 24, alignItems: "center" },
+  badgeFilled: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, minWidth: 24, alignItems: "center" },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   emptyContainer: { flex: 1 },
   emptyState: { alignItems: "center", justifyContent: "center", gap: 8, paddingTop: 60 },
   emptyIcon: { fontSize: 32 },
-  emptyText: { fontSize: 14, color: "#9CA3AF" },
-  separator: { height: 1, backgroundColor: "#F3F4F6", marginLeft: 72 },
+  emptyText: { fontSize: 14 },
+  separator: { height: 1, marginLeft: 72 },
   emailRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4, gap: 12, position: "relative" },
-  emailRowUnread: { backgroundColor: "#FAFAFA" },
-  unreadDot: { position: "absolute", left: -8, width: 6, height: 6, borderRadius: 3, backgroundColor: "#1E0977", top: "50%" },
+  emailRowUnread: { },
+  unreadDot: { position: "absolute", left: -8, width: 6, height: 6, borderRadius: 3, top: "50%" },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   avatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   emailContent: { flex: 1, gap: 2 },
   emailTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  senderName: { fontSize: 14, color: "#374151", fontWeight: "500", flex: 1 },
-  bold: { fontWeight: "700", color: "#111827" },
-  dateText: { fontSize: 11, color: "#9CA3AF", marginLeft: 8 },
-  subjectText: { fontSize: 13, color: "#6B7280" },
-  subjectBold: { fontWeight: "600", color: "#374151" },
-  previewText: { fontSize: 12, color: "#9CA3AF" },
-  modalScreen: { flex: 1, backgroundColor: "#fff" },
-  modalHeader: { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: "#F3F4F6", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  backBtn: { fontSize: 15, color: "#1E0977", fontWeight: "600" },
-  replyBtn: { fontSize: 15, color: "#1E0977", fontWeight: "700" },
+  senderName: { fontSize: 14, fontWeight: "500", flex: 1 },
+  bold: { fontWeight: "700" },
+  dateText: { fontSize: 11, marginLeft: 8 },
+  subjectText: { fontSize: 13 },
+  subjectBold: { fontWeight: "600" },
+  previewText: { fontSize: 12 },
+  modalScreen: { flex: 1 },
+  modalHeader: { paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16, borderBottomWidth: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  backBtn: { fontSize: 15, fontWeight: "600" },
+  replyBtn: { fontSize: 15, fontWeight: "700" },
   emailDetail: { padding: 20, gap: 16 },
-  detailSubject: { fontSize: 20, fontWeight: "700", color: "#111827" },
+  detailSubject: { fontSize: 20, fontWeight: "700" },
   detailMeta: { flexDirection: "row", alignItems: "center", gap: 12 },
-  detailSender: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  detailDate: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-  detailDivider: { height: 1, backgroundColor: "#F3F4F6" },
-  detailBody: { fontSize: 15, color: "#374151", lineHeight: 24 },
+  detailSender: { fontSize: 14, fontWeight: "600" },
+  detailDate: { fontSize: 12, marginTop: 2 },
+  detailDivider: { height: 1 },
+  detailBody: { fontSize: 15, lineHeight: 24 },
   composeOverlay: { flex: 1, justifyContent: "flex-end" },
   composeBackdrop: { ...(StyleSheet.absoluteFill as any), backgroundColor: "rgba(0,0,0,0.4)" },
-  composeSheet: { backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "90%", shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 16 },
-  composeHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
-  composeTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  composeClose: { fontSize: 16, color: "#9CA3AF", fontWeight: "600" },
+  composeSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "90%", shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 16 },
+  composeHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: 1 },
+  composeTitle: { fontSize: 16, fontWeight: "700" },
+  composeClose: { fontSize: 16, fontWeight: "600" },
   composeBody: { padding: 20, gap: 10, paddingBottom: 32 },
-  composeLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  composeInput: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: "#111827", backgroundColor: "#F9FAFB" },
-  composeTextArea: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: "#111827", backgroundColor: "#F9FAFB", height: 160 },
-  recipientSelector: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, backgroundColor: "#F9FAFB", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  recipientPlaceholder: { fontSize: 14, color: "#9CA3AF" },
-  recipientSelected: { fontSize: 14, color: "#111827", fontWeight: "500" },
-  chevron: { fontSize: 10, color: "#6B7280" },
-  recipientPickerContainer: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, backgroundColor: "#fff", overflow: "hidden", marginTop: -4, maxHeight: 320 },
-  recipientSearchWrap: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: "#F3F4F6", paddingHorizontal: 12, paddingVertical: 8, gap: 8, backgroundColor: "#F9FAFB" },
+  composeLabel: { fontSize: 13, fontWeight: "600" },
+  composeInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
+  composeTextArea: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, height: 160 },
+  recipientSelector: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  recipientPlaceholder: { fontSize: 14 },
+  recipientSelected: { fontSize: 14, fontWeight: "500" },
+  chevron: { fontSize: 10 },
+  recipientPickerContainer: { borderWidth: 1, borderRadius: 8, overflow: "hidden", marginTop: -4, maxHeight: 320 },
+  recipientSearchWrap: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1, paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   recipientSearchIcon: { fontSize: 14 },
-  recipientSearchInput: { flex: 1, fontSize: 14, color: "#111827", paddingVertical: 4 },
+  recipientSearchInput: { flex: 1, fontSize: 14, paddingVertical: 4 },
   recipientList: { maxHeight: 240 },
   recipientLoading: { paddingVertical: 16, alignItems: "center" },
-  recipientLoadingText: { fontSize: 13, color: "#6B7280" },
+  recipientLoadingText: { fontSize: 13 },
   recipientEmpty: { paddingVertical: 16, alignItems: "center" },
-  recipientEmptyText: { fontSize: 13, color: "#9CA3AF" },
-  recipientOption: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
+  recipientEmptyText: { fontSize: 13 },
+  recipientOption: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1 },
   recipientAvatar: { width: 30, height: 30, borderRadius: 15, justifyContent: "center", alignItems: "center" },
-  recipientOptionText: { fontSize: 14, color: "#111827" },
+  recipientOptionText: { fontSize: 14 },
   composeActions: { flexDirection: "row", gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: "#E5E7EB", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
-  cancelBtnText: { fontSize: 14, fontWeight: "600", color: "#374151" },
+  cancelBtn: { flex: 1, borderWidth: 1.5, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  cancelBtnText: { fontSize: 14, fontWeight: "600" },
   sendBtn: { flex: 1, backgroundColor: "#1E0977", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
   sendBtnDisabled: { opacity: 0.6 },
   sendBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },

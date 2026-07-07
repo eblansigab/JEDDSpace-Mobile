@@ -3,6 +3,7 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Card from "@/components/card";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { useTheme } from "@/context/ThemeContext";
 
 type Announcement = {
   announcement_id?: string;
@@ -16,6 +17,7 @@ type Announcement = {
 };
 
 export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }) {
+  const { colors } = useTheme();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={styles.centerText}>Loading announcements...</Text>
+        <Text style={[styles.centerText, { color: colors.textSecondary }]}>Loading announcements...</Text>
       </View>
     );
   }
@@ -69,7 +71,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
       </View>
     );
   }
@@ -77,8 +79,8 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (announcements.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="megaphone-outline" size={40} color="#9CA3AF" />
-        <Text style={styles.emptyText}>No announcements yet.</Text>
+        <Ionicons name="megaphone-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No announcements yet.</Text>
       </View>
     );
   }
@@ -95,8 +97,8 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (filtered.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="search-outline" size={40} color="#9CA3AF" />
-        <Text style={styles.emptyText}>No matching announcements.</Text>
+        <Ionicons name="search-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No matching announcements.</Text>
       </View>
     );
   }
@@ -111,28 +113,28 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
         <Card style={[styles.card, item.isUnread && styles.unreadCard]}>
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={2}>
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
                 {item.title}
               </Text>
-              {item.isUnread && <View style={styles.unreadDot} />}
+              {item.isUnread && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
             </View>
             <View style={styles.metaRow}>
-              <Ionicons name="person-outline" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>{item.sender}</Text>
+              <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.sender}</Text>
               {item.created_at ? (
                 <>
-                  <View style={styles.metaDot} />
-                  <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                  <Text style={styles.metaText}>{formatDate(item.created_at)}</Text>
+                  <View style={[styles.metaDot, { backgroundColor: colors.border }]} />
+                  <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                  <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
                 </>
               ) : null}
             </View>
           </View>
           {item.body ? (
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
           ) : null}
           {item.body ? (
-            <Text style={styles.body} numberOfLines={4}>
+            <Text style={[styles.body, { color: colors.textSecondary }]} numberOfLines={4}>
               {item.body}
             </Text>
           ) : null}
@@ -162,11 +164,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -175,8 +175,6 @@ const styles = StyleSheet.create({
   },
   unreadCard: {
     borderLeftWidth: 4,
-    borderLeftColor: "#1E0977",
-    backgroundColor: "#F9FAFB",
   },
   header: {
     gap: 6,
@@ -190,13 +188,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "700",
-    color: "#111827",
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#1E0977",
   },
   metaRow: {
     flexDirection: "row",
@@ -205,24 +201,20 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: "#6B7280",
     fontWeight: "500",
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#D1D5DB",
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
     marginVertical: 10,
   },
   body: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#374151",
   },
   center: {
     alignItems: "center",
@@ -232,16 +224,13 @@ const styles = StyleSheet.create({
   },
   centerText: {
     fontSize: 14,
-    color: "#6B7280",
   },
   errorText: {
     fontSize: 14,
-    color: "#EF4444",
     textAlign: "center",
   },
   emptyText: {
     fontSize: 14,
-    color: "#9CA3AF",
     marginTop: 8,
   },
 });

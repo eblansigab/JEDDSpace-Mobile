@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
 import { aiService, ChatMessage, getRecommendations } from "@/services/aiService";
 import { supabase } from "@/lib/supabase";
@@ -55,6 +56,7 @@ const createSessionId = () => `session_${Date.now().toString(36)}_${Math.random(
 
 export default function AiAssistantScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const [prompt, setPrompt] = useState("");
@@ -356,16 +358,16 @@ export default function AiAssistantScreen() {
     const isUser = item.role === "user";
     return (
       <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
-        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+        <View style={[styles.messageBubble, isUser ? styles.userBubble : [styles.assistantBubble, { backgroundColor: colors.surface, borderColor: colors.border }]]}>
           {!isUser && (
             <View style={styles.assistantHeader}>
               <View style={styles.aiAvatar}>
                 <Text style={styles.aiAvatarText}>AI</Text>
               </View>
-              <Text style={styles.assistantName}>JEDDSpace AI</Text>
+              <Text style={[styles.assistantName, { color: colors.primary }]}>JEDDSpace AI</Text>
             </View>
           )}
-          <Text style={[styles.messageText, isUser && styles.userMessageText]}>{item.content}</Text>
+          <Text style={[styles.messageText, isUser && styles.userMessageText, { color: isUser ? "#fff" : colors.text }]}>{item.content}</Text>
         </View>
       </View>
     );
@@ -378,7 +380,7 @@ export default function AiAssistantScreen() {
       disabled={loading}
       activeOpacity={0.7}
     >
-      <Text style={styles.promptChipText}>{item.label}</Text>
+      <Text style={[styles.promptChipText, { color: colors.primary }]}>{item.label}</Text>
     </TouchableOpacity>
   );
 
@@ -395,7 +397,7 @@ export default function AiAssistantScreen() {
           <Ionicons
             name={isActive ? "chatbubbles" : "chatbubble-outline"}
             size={18}
-            color={isActive ? "#fff" : "#374151"}
+            color={isActive ? "#fff" : colors.textSecondary}
           />
           <Text style={[styles.sessionModalText, isActive && styles.sessionModalTextActive]}>{label}</Text>
         </View>
@@ -404,7 +406,7 @@ export default function AiAssistantScreen() {
             <Text style={styles.sessionModalActiveLabel}>Active</Text>
           ) : (
             <TouchableOpacity onPress={() => void handleSwitchSession(s)} hitSlop={8}>
-              <Text style={styles.sessionModalSwitch}>Switch</Text>
+              <Text style={[styles.sessionModalSwitch, { color: colors.primary }]}>Switch</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -413,29 +415,29 @@ export default function AiAssistantScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerTop}>
           <View style={styles.headerTextBlock}>
-            <Text style={styles.title}>AI Assistant</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.text }]}>AI Assistant</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {`JEDDSpace AI is ready${profile?.first_name ? `, ${profile.first_name}` : ""}.`}
             </Text>
           </View>
           <TouchableOpacity style={styles.sessionBtn} onPress={() => setShowSessionPicker(true)} activeOpacity={0.7}>
-            <Ionicons name="git-branch-outline" size={18} color="#1E0977" />
-            <Text style={styles.sessionBtnText}>Chats</Text>
+            <Ionicons name="git-branch-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sessionBtnText, { color: colors.primary }]}>Chats</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleClearChat} disabled={loading} hitSlop={8}>
-            <Ionicons name="trash-outline" size={18} color="#374151" />
+          <TouchableOpacity style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={handleClearChat} disabled={loading} hitSlop={8}>
+            <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleNewChat} disabled={loading} hitSlop={8}>
-            <Ionicons name="add-circle-outline" size={18} color="#1E0977" />
-            <Text style={styles.iconBtnText}>New Chat</Text>
+          <TouchableOpacity style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={handleNewChat} disabled={loading} hitSlop={8}>
+            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+            <Text style={[styles.iconBtnText, { color: colors.text }]}>New Chat</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -453,10 +455,10 @@ export default function AiAssistantScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="sparkles-outline" size={32} color="#1E0977" />
+              <Ionicons name="sparkles-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>Start a conversation</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a conversation</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Ask about jobs, employees, leave, contracts, notifications, or documents.
             </Text>
           </View>
@@ -475,12 +477,12 @@ export default function AiAssistantScreen() {
           <View style={styles.attachmentRow}>
             {attachments.map((att, idx) => (
               <View key={idx} style={styles.attachmentChip}>
-                <Ionicons name="document-attach-outline" size={14} color="#1E0977" />
+                <Ionicons name="document-attach-outline" size={14} color={colors.primary} />
                 <Text style={styles.attachmentName} numberOfLines={1}>
                   {att.name}
                 </Text>
                 <TouchableOpacity onPress={() => setAttachments((c) => c.filter((_, i) => i !== idx))} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color="#EF4444" />
+                  <Ionicons name="close-circle" size={16} color={colors.danger} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -489,7 +491,7 @@ export default function AiAssistantScreen() {
       )}
 
       <View style={styles.suggestedPrompts}>
-        <Text style={styles.promptsTitle}>Suggested</Text>
+        <Text style={[styles.promptsTitle, { color: colors.textSecondary }]}>Suggested</Text>
         <FlatList
           horizontal
           data={quickPrompts}
@@ -504,7 +506,7 @@ export default function AiAssistantScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={90}
       >
-        <View style={styles.inputRow}>
+        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={[styles.attachBtn, loading && styles.sendBtnDisabled]}
             onPress={() => void handlePickAttachment()}
@@ -512,12 +514,12 @@ export default function AiAssistantScreen() {
             activeOpacity={0.7}
             hitSlop={8}
           >
-            <Ionicons name="attach-outline" size={20} color="#1E0977" />
+            <Ionicons name="attach-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
             placeholder="Ask about employees, jobs, leave..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.textMuted}
             value={prompt}
             onChangeText={setPrompt}
             onSubmitEditing={() => void runPrompt(prompt, true)}
@@ -538,11 +540,11 @@ export default function AiAssistantScreen() {
 
       <Modal visible={showSessionPicker} animationType="slide" transparent onRequestClose={() => setShowSessionPicker(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setShowSessionPicker(false)}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Chat History</Text>
+          <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Chat History</Text>
               <TouchableOpacity onPress={() => setShowSessionPicker(false)} hitSlop={12}>
-                <Ionicons name="close" size={22} color="#374151" />
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.modalList}>
@@ -570,15 +572,11 @@ const Pressable = ({ children, ...rest }: { children: React.ReactNode } & React.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
   },
   header: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
     gap: 10,
   },
   headerTop: {
@@ -593,27 +591,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
   },
   subtitle: {
     fontSize: 13,
-    color: "#6B7280",
   },
   sessionBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: "#F9FAFB",
   },
   sessionBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1E0977",
   },
   headerActions: {
     flexDirection: "row",
@@ -624,16 +617,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: "#fff",
   },
   iconBtnText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
   },
   messagesList: {
     gap: 10,
@@ -663,9 +653,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderBottomLeftRadius: 4,
   },
   assistantHeader: {
@@ -690,12 +678,10 @@ const styles = StyleSheet.create({
   assistantName: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#1E0977",
   },
   messageText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#111827",
   },
   userMessageText: {
     color: "#fff",
@@ -708,13 +694,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#EEF2FF",
     borderRadius: 20,
     alignSelf: "flex-start",
   },
   statusText: {
     fontSize: 12,
-    color: "#1E0977",
     fontWeight: "600",
   },
   emptyState: {
@@ -736,11 +720,9 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
   },
   emptySubtitle: {
     fontSize: 13,
-    color: "#6B7280",
     textAlign: "center",
   },
   attachmentScroll: {
@@ -756,7 +738,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#EEF2FF",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -764,7 +745,6 @@ const styles = StyleSheet.create({
   },
   attachmentName: {
     fontSize: 12,
-    color: "#1E0977",
     fontWeight: "600",
     flex: 1,
   },
@@ -775,7 +755,6 @@ const styles = StyleSheet.create({
   promptsTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B7280",
     textTransform: "uppercase",
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -785,16 +764,13 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   promptChip: {
-    backgroundColor: "#EEF2FF",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
   },
   promptChipText: {
     fontSize: 13,
-    color: "#1E0977",
     fontWeight: "600",
   },
   inputRow: {
@@ -803,17 +779,13 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
   },
   attachBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#F9FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -823,13 +795,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#F9FAFB",
     fontSize: 14,
-    color: "#111827",
     maxHeight: 120,
   },
   sendBtn: {
@@ -851,7 +820,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalSheet: {
-    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "70%",
@@ -863,12 +831,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
   },
   modalList: {
     padding: 16,
@@ -880,10 +846,8 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: "#F9FAFB",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     marginBottom: 4,
   },
   newChatIcon: {
@@ -897,7 +861,6 @@ const styles = StyleSheet.create({
   newChatText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#111827",
   },
   sessionModalOption: {
     flexDirection: "row",
@@ -906,9 +869,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   sessionModalOptionActive: {
     backgroundColor: "#1E0977",
@@ -922,7 +883,6 @@ const styles = StyleSheet.create({
   sessionModalText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
   },
   sessionModalTextActive: {
     color: "#fff",

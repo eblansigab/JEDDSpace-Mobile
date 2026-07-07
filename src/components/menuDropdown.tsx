@@ -2,7 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "@/context/ThemeContext";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 type NavItem =
@@ -25,6 +26,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 export default function MenuDropdown() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { theme, colors, toggleTheme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -63,11 +65,11 @@ export default function MenuDropdown() {
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Navigate to</Text>
+          <Pressable style={[styles.sheet, { backgroundColor: colors.sheet }]} onPress={() => undefined}>
+            <View style={[styles.sheetHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>Navigate to</Text>
               <TouchableOpacity onPress={() => setOpen(false)} hitSlop={12}>
-                <Ionicons name="close-outline" color="#9CA3AF" size={24} />
+                <Ionicons name="close-outline" color={colors.textMuted} size={24} />
               </TouchableOpacity>
             </View>
 
@@ -76,8 +78,8 @@ export default function MenuDropdown() {
                 if (item.kind === "section") {
                   return (
                     <View key={`${item.label}-${index}`} style={styles.sectionHeader}>
-                      <Text style={styles.sectionLabel}>{item.label}</Text>
-                      <View style={styles.sectionLine} />
+                      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>{item.label}</Text>
+                      <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
                     </View>
                   );
                 }
@@ -88,17 +90,30 @@ export default function MenuDropdown() {
                     onPress={() => handleNav(item.value)}
                     activeOpacity={0.6}
                   >
-                    <Ionicons name={item.icon} color="#1E0977" size={20} style={styles.navIcon} />
-                    <Text style={styles.navLabel}>{item.label}</Text>
+                    <Ionicons name={item.icon} color={colors.primary} size={20} style={styles.navIcon} />
+                    <Text style={[styles.navLabel, { color: colors.text }]}>{item.label}</Text>
                     {item.adminOnly ? (
-                      <View style={styles.adminBadge}>
-                        <Text style={styles.adminBadgeText}>Admin</Text>
+                      <View style={[styles.adminBadge, { backgroundColor: colors.primaryLight }]}>
+                        <Text style={[styles.adminBadgeText, { color: colors.primary }]}>Admin</Text>
                       </View>
                     ) : null}
-                    <Ionicons name="chevron-forward-outline" color="#D1D5DB" size={18} />
+                    <Ionicons name="chevron-forward-outline" color={colors.border} size={18} />
                   </TouchableOpacity>
                 );
               })}
+
+              <View style={[styles.themeRow, { borderTopColor: colors.border }]}>
+                <View style={styles.themeInfo}>
+                  <Text style={[styles.themeLabel, { color: colors.text }]}>Dark Mode</Text>
+                  <Text style={[styles.themeHint, { color: colors.textSecondary }]}>{theme === "dark" ? "On" : "Off"}</Text>
+                </View>
+                <Switch
+                  value={theme === "dark"}
+                  onValueChange={toggleTheme}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -121,7 +136,6 @@ const styles = StyleSheet.create({
   triggerLabel: { color: "#fff", fontWeight: "600", fontSize: 14 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-start", paddingTop: 100, paddingHorizontal: 16 },
   sheet: {
-    backgroundColor: "#fff",
     borderRadius: 16,
     paddingBottom: 12,
     shadowColor: "#000",
@@ -137,16 +151,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
   },
-  sheetTitle: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  sheetTitle: { fontSize: 15, fontWeight: "700" },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
-  sectionLabel: { fontSize: 11, fontWeight: "700", color: "#9CA3AF", textTransform: "uppercase" },
-  sectionLine: { flex: 1, height: 1, backgroundColor: "#F3F4F6" },
+  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
+  sectionLine: { flex: 1, height: 1 },
   navItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
   navIcon: { width: 26 },
-  navLabel: { flex: 1, fontSize: 14, fontWeight: "500", color: "#111827" },
-  adminBadge: { backgroundColor: "#EEF2FF", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  adminBadgeText: { fontSize: 10, color: "#1E0977", fontWeight: "700" },
+  navLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
+  adminBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  adminBadgeText: { fontSize: 10, fontWeight: "700" },
+  themeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderTopWidth: 1,
+    marginTop: 4,
+    gap: 12,
+  },
+  themeInfo: { flex: 1, gap: 2 },
+  themeLabel: { fontSize: 14, fontWeight: "600" },
+  themeHint: { fontSize: 12 },
 });
+

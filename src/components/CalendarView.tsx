@@ -1,7 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useState } from "react";
 
-// Hardcoded task schedule for June 2025
 const TASK_DAYS: Record<number, { color: string; count: number }> = {
   2:  { color: "#F59E0B", count: 2 },
   5:  { color: "#22C55E", count: 1 },
@@ -18,7 +17,6 @@ const TASK_DAYS: Record<number, { color: string; count: number }> = {
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_LABEL = "June 2025";
-// June 2025 starts on Sunday (0), has 30 days
 const START_DAY = 0;
 const TOTAL_DAYS = 30;
 
@@ -30,7 +28,6 @@ export default function CalendarView() {
     ...Array.from({ length: TOTAL_DAYS }, (_, i) => i + 1),
   ];
 
-  // Pad to full weeks
   while (cells.length % 7 !== 0) cells.push(null);
 
   const selectedTask = selectedDay ? TASK_DAYS[selectedDay] : null;
@@ -39,14 +36,12 @@ export default function CalendarView() {
     <View style={styles.container}>
       <Text style={styles.month}>{MONTH_LABEL}</Text>
 
-      {/* Day headers */}
       <View style={styles.weekRow}>
         {DAYS_OF_WEEK.map((d) => (
           <Text key={d} style={styles.weekLabel}>{d}</Text>
         ))}
       </View>
 
-      {/* Calendar grid */}
       <View style={styles.grid}>
         {cells.map((day, idx) => {
           if (day === null) return <View key={`empty-${idx}`} style={styles.cell} />;
@@ -70,7 +65,6 @@ export default function CalendarView() {
         })}
       </View>
 
-      {/* Selected day detail */}
       {selectedDay && (
         <View style={styles.detail}>
           {selectedTask ? (
@@ -86,7 +80,6 @@ export default function CalendarView() {
         </View>
       )}
 
-      {/* Legend */}
       <View style={styles.legend}>
         {[
           { color: "#F59E0B", label: "Ongoing" },

@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { getNotificationsEnabled, setNotificationsEnabled } from "@/services/notificationService";
+import { useTheme } from "@/context/ThemeContext";
 
 interface EmployeeProfile {
   employee_id: string;
@@ -19,24 +20,24 @@ interface EmployeeProfile {
   username: string | null;
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+function SectionCard({ children, colors }: { children: React.ReactNode; colors: ReturnType<typeof useTheme>["colors"] }) {
+  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>{children}</View>;
 }
 
-function SectionTitle({ label }: { label: string }) {
+function SectionTitle({ label, colors }: { label: string; colors: ReturnType<typeof useTheme>["colors"] }) {
   return (
     <View style={styles.sectionTitleRow}>
-      <Text style={styles.sectionTitle}>{label}</Text>
-      <View style={styles.sectionLine} />
+      <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={[styles.sectionLine, { backgroundColor: colors.border }]} />
     </View>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRow({ label, value, colors }: { label: string; value?: string | null; colors: ReturnType<typeof useTheme>["colors"] }) {
   return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue} numberOfLines={1}>
+    <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>
         {value || "-"}
       </Text>
     </View>
@@ -49,6 +50,7 @@ function getInitials(profile: EmployeeProfile | null) {
 
 export default function Profile() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [avatarLoading, setAvatarLoading] = useState(false);
@@ -241,12 +243,12 @@ export default function Profile() {
   const fullName = profile ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim() || "Employee" : "Loading...";
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1E0977" />
-            <Text style={styles.loadingText}>Loading profile...</Text>
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading profile...</Text>
           </View>
         ) : (
           <>
@@ -255,32 +257,32 @@ export default function Profile() {
                 {profile?.avatar_url ? <Image style={styles.avatarImage} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>}
                 {avatarLoading ? <View style={styles.avatarOverlay}><ActivityIndicator color="#fff" /></View> : null}
               </View>
-              <Text style={styles.heroName}>{fullName}</Text>
-              <View style={styles.rolePill}>
-                <Text style={styles.rolePillText}>{profile?.role ?? "Employee"}</Text>
+              <Text style={[styles.heroName, { color: colors.text }]}>{fullName}</Text>
+              <View style={[styles.rolePill, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.rolePillText, { color: colors.primary }]}>{profile?.role ?? "Employee"}</Text>
               </View>
             </View>
 
-            <SectionCard>
-              <SectionTitle label="Contact Information" />
-              <InfoRow label="Username" value={profile?.username} />
-              <Text style={{ fontSize: 12, color: "#6B7280", marginTop: -4, paddingHorizontal: 4 }}>
+            <SectionCard colors={colors}>
+              <SectionTitle label="Contact Information" colors={colors} />
+              <InfoRow label="Username" value={profile?.username} colors={colors} />
+              <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                 Usernames are managed by the administrator.
               </Text>
-              <InfoRow label="Department" value={profile?.department} />
-              <InfoRow label="Position" value={profile?.position} />
+              <InfoRow label="Department" value={profile?.department} colors={colors} />
+              <InfoRow label="Position" value={profile?.position} colors={colors} />
             </SectionCard>
 
-            <SectionCard>
-              <SectionTitle label="Profile Picture" />
+            <SectionCard colors={colors}>
+              <SectionTitle label="Profile Picture" colors={colors} />
               <View style={styles.pictureRow}>
-                <View style={styles.picturePlaceholder}>
-                  {profile?.avatar_url ? <Image style={styles.pictureThumbnail} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <Text style={styles.pictureInitials}>{initials}</Text>}
+                <View style={[styles.picturePlaceholder, { backgroundColor: colors.primaryLight }]}>
+                  {profile?.avatar_url ? <Image style={styles.pictureThumbnail} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <Text style={[styles.pictureInitials, { color: colors.primary }]}>{initials}</Text>}
                 </View>
                 <View style={styles.pictureInfo}>
-                  <Text style={styles.pictureHint}>PNG, JPG, JPEG, or WEBP. Max 2 MB.</Text>
-                  <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.7} onPress={handleChangeAvatar} disabled={avatarLoading}>
-                    <Text style={styles.outlineBtnText}>{avatarLoading ? "Uploading..." : "Change Picture"}</Text>
+                  <Text style={[styles.pictureHint, { color: colors.textSecondary }]}>PNG, JPG, JPEG, or WEBP. Max 2 MB.</Text>
+                  <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.primary }]} activeOpacity={0.7} onPress={handleChangeAvatar} disabled={avatarLoading}>
+                    <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{avatarLoading ? "Uploading..." : "Change Picture"}</Text>
                   </TouchableOpacity>
                   {profile?.avatar_url ? (
                     <TouchableOpacity onPress={handleRemoveAvatar} disabled={avatarLoading}>
@@ -291,13 +293,13 @@ export default function Profile() {
               </View>
             </SectionCard>
 
-            <SectionCard>
-              <SectionTitle label="Change Password" />
-              <Text style={styles.fieldLabel}>New Password</Text>
+            <SectionCard colors={colors}>
+              <SectionTitle label="Change Password" colors={colors} />
+              <Text style={[styles.fieldLabel, { color: colors.text }]}>New Password</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
                 placeholder="Enter new password (min 6 chars)"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={newPassword}
                 onChangeText={setNewPassword}
@@ -307,25 +309,25 @@ export default function Profile() {
               </TouchableOpacity>
             </SectionCard>
 
-            <SectionCard>
-              <SectionTitle label="Notifications" />
+            <SectionCard colors={colors}>
+              <SectionTitle label="Notifications" colors={colors} />
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Push Notifications</Text>
-                  <Text style={styles.toggleHint}>Receive alerts and updates from JEDDSpace</Text>
+                  <Text style={[styles.toggleTitle, { color: colors.text }]}>Push Notifications</Text>
+                  <Text style={[styles.toggleHint, { color: colors.textSecondary }]}>Receive alerts and updates from JEDDSpace</Text>
                 </View>
                 <Switch
                   value={notificationsEnabled}
                   onValueChange={handleToggleNotifications}
-                  trackColor={{ false: "#E5E7EB", true: "#1E0977" }}
-                  thumbColor={notificationsEnabled ? "#fff" : "#9CA3AF"}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={notificationsEnabled ? "#fff" : colors.textMuted}
                 />
               </View>
             </SectionCard>
 
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-              <Ionicons name="log-out-outline" color="#EF4444" size={18} />
-              <Text style={styles.logoutText}>Log Out</Text>
+            <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: colors.surface }]} onPress={handleLogout} activeOpacity={0.8}>
+              <Ionicons name="log-out-outline" color={colors.danger} size={18} />
+              <Text style={[styles.logoutText, { color: colors.danger }]}>Log Out</Text>
             </TouchableOpacity>
           </>
         )}
@@ -335,44 +337,45 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#F9FAFB" },
+  flex: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingVertical: 24, gap: 12, paddingBottom: 40 },
   loadingContainer: { marginTop: 80, alignItems: "center", gap: 12 },
-  loadingText: { fontSize: 14, color: "#6B7280" },
+  loadingText: { fontSize: 14 },
   hero: { alignItems: "center", paddingVertical: 24, gap: 8 },
   avatarContainer: { position: "relative", marginBottom: 4 },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#1E0977", justifyContent: "center", alignItems: "center" },
   avatarImage: { width: 80, height: 80, borderRadius: 40 },
   avatarOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
   avatarText: { color: "#fff", fontSize: 28, fontWeight: "700" },
-  heroName: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  rolePill: { backgroundColor: "#EEF2FF", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
-  rolePillText: { fontSize: 12, fontWeight: "600", color: "#1E0977" },
-  card: { backgroundColor: "#fff", borderRadius: 8, padding: 16, gap: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  heroName: { fontSize: 20, fontWeight: "700" },
+  rolePill: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  rolePillText: { fontSize: 12, fontWeight: "600" },
+  card: { borderRadius: 8, padding: 16, gap: 10, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", color: "#6B7280", textTransform: "uppercase" },
-  sectionLine: { flex: 1, height: 1, backgroundColor: "#F3F4F6" },
-  infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "#F9FAFB" },
-  infoLabel: { fontSize: 13, color: "#6B7280", fontWeight: "500" },
-  infoValue: { fontSize: 13, color: "#111827", fontWeight: "500", flexShrink: 1, textAlign: "right", marginLeft: 12 },
+  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
+  sectionLine: { flex: 1, height: 1 },
+  infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderBottomWidth: 1 },
+  infoLabel: { fontSize: 13, fontWeight: "500" },
+  infoValue: { fontSize: 13, fontWeight: "500", flexShrink: 1, textAlign: "right", marginLeft: 12 },
+  helperText: { fontSize: 12, marginTop: -4, paddingHorizontal: 4 },
   pictureRow: { flexDirection: "row", alignItems: "center", gap: 16 },
-  picturePlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center", overflow: "hidden" },
+  picturePlaceholder: { width: 72, height: 72, borderRadius: 36, justifyContent: "center", alignItems: "center", overflow: "hidden" },
   pictureThumbnail: { width: 72, height: 72 },
-  pictureInitials: { fontSize: 22, fontWeight: "700", color: "#1E0977" },
+  pictureInitials: { fontSize: 22, fontWeight: "700" },
   pictureInfo: { flex: 1, gap: 8 },
-  pictureHint: { fontSize: 12, color: "#9CA3AF" },
+  pictureHint: { fontSize: 12 },
   removeText: { fontSize: 12, color: "#EF4444", fontWeight: "600" },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: -4 },
-  input: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14, color: "#111827", backgroundColor: "#F9FAFB" },
+  fieldLabel: { fontSize: 13, fontWeight: "600", marginBottom: -4 },
+  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
   primaryBtn: { backgroundColor: "#1E0977", borderRadius: 8, paddingVertical: 12, alignItems: "center", marginTop: 4 },
   primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  outlineBtn: { borderWidth: 1.5, borderColor: "#1E0977", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start" },
-  outlineBtnText: { color: "#1E0977", fontSize: 13, fontWeight: "600" },
-  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FEF2F2", borderRadius: 8, paddingVertical: 14, marginTop: 4 },
-  logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "700" },
+  outlineBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start" },
+  outlineBtnText: { fontSize: 13, fontWeight: "600" },
+  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 8, paddingVertical: 14, marginTop: 4 },
+  logoutText: { fontSize: 15, fontWeight: "700" },
   toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   toggleInfo: { flex: 1, gap: 2 },
-  toggleTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  toggleHint: { fontSize: 12, color: "#6B7280" },
+  toggleTitle: { fontSize: 14, fontWeight: "600" },
+  toggleHint: { fontSize: 12 },
 });

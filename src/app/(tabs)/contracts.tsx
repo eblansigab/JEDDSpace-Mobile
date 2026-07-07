@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import Card from "@/components/card";
 import MenuDropdown from "@/components/menuDropdown";
 import StatusBadge, { Status } from "@/components/StatusBadge";
@@ -28,6 +29,7 @@ type Contract = {
 };
 
 export default function Contracts() {
+  const { colors } = useTheme();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [startPickerOpen, setStartPickerOpen] = useState(false);
@@ -133,14 +135,14 @@ export default function Contracts() {
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View style={styles.cardTitles}>
-            <Text style={styles.contractTitle} numberOfLines={2}>
+            <Text style={[styles.contractTitle, { color: colors.text }]} numberOfLines={2}>
               {item.contract_title}
             </Text>
             <StatusBadge status={item.status.toLowerCase().replace(" ", "_") as Status} />
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <View style={styles.detailsGrid}>
           <DetailRow label="Contractor" value={name} />
@@ -163,7 +165,7 @@ export default function Contracts() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -187,8 +189,8 @@ export default function Contracts() {
 function DetailRow({ label, value }: { label: string; value?: string }) {
   return (
     <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue} numberOfLines={1}>
+      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: colors.text }]} numberOfLines={1}>
         {value || "-"}
       </Text>
     </View>
@@ -201,10 +203,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 24,
     gap: 16,
-    backgroundColor: "#fff",
   },
-  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#fff" },
-  loadingText: { fontSize: 14, color: "#6B7280" },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  loadingText: { fontSize: 14 },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -220,10 +221,9 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: "#1E0977", fontSize: 14, fontWeight: "700" },
   cardTitles: { flex: 1, gap: 4 },
-  contractTitle: { fontSize: 15, fontWeight: "700", color: "#111827", flex: 1 },
+  contractTitle: { fontSize: 15, fontWeight: "700", flex: 1 },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
     marginVertical: 10,
   },
   detailsGrid: {
@@ -235,8 +235,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
   },
-  detailLabel: { fontSize: 12, fontWeight: "600", color: "#6B7280", width: 100 },
-  detailValue: { fontSize: 13, color: "#111827", flex: 1, textAlign: "right", marginLeft: 12 },
+  detailLabel: { fontSize: 12, fontWeight: "600", width: 100 },
+  detailValue: { fontSize: 13, flex: 1, textAlign: "right", marginLeft: 12 },
   emptyState: { alignItems: "center", paddingTop: 40 },
-  emptyText: { fontSize: 14, color: "#9CA3AF" },
+  emptyText: { fontSize: 14 },
 });

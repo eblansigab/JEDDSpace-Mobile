@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useState } from "react";
@@ -33,6 +34,7 @@ function isValidDate(str: string): boolean {
 }
 
 export default function BusinessForm() {
+  const { colors } = useTheme();
   const [form, setForm] = useState<BusinessFormState>({
     startDate: "",
     endDate: "",
@@ -128,7 +130,7 @@ export default function BusinessForm() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.container}>
@@ -138,16 +140,16 @@ export default function BusinessForm() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.pageTitle}>Official Business Form</Text>
-          <Text style={styles.pageSubtitle}>Submit your official business trip details for approval.</Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Official Business Form</Text>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>Submit your official business trip details for approval.</Text>
 
           {/* Start Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>Start Date * (YYYY-MM-DD)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Start Date * (YYYY-MM-DD)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="e.g. 2025-08-01"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.startDate}
               onChangeText={(v) => setField("startDate", v)}
               keyboardType="numeric"
@@ -156,11 +158,11 @@ export default function BusinessForm() {
 
           {/* End Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>End Date * (YYYY-MM-DD)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>End Date * (YYYY-MM-DD)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="e.g. 2025-08-03"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.endDate}
               onChangeText={(v) => setField("endDate", v)}
               keyboardType="numeric"
@@ -169,27 +171,27 @@ export default function BusinessForm() {
 
           {/* Location */}
           <View style={styles.field}>
-            <Text style={styles.label}>Location *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Location *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="Enter destination or location"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.location}
               onChangeText={(v) => setField("location", v)}
             />
           </View>
 
           {/* Company Car toggle */}
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.switchInfo}>
-              <Text style={styles.label}>Company Car</Text>
-              <Text style={styles.switchHint}>Will a company vehicle be used?</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Company Car</Text>
+              <Text style={[styles.switchHint, { color: colors.textMuted }]}>Will a company vehicle be used?</Text>
             </View>
             <Switch
               value={form.companyCar}
               onValueChange={(v) => setField("companyCar", v)}
-              trackColor={{ false: "#E5E7EB", true: "#1E0977" }}
-              thumbColor={form.companyCar ? "#fff" : "#9CA3AF"}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={form.companyCar ? "#fff" : colors.textMuted}
             />
           </View>
 
@@ -197,22 +199,22 @@ export default function BusinessForm() {
           {form.companyCar && (
             <>
               <View style={styles.field}>
-                <Text style={styles.label}>Driver Name *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Driver Name *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="Enter driver's full name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   value={form.driverName}
                   onChangeText={(v) => setField("driverName", v)}
                 />
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Phone Number *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Phone Number *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="Enter contact phone number"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   value={form.phoneNum}
                   onChangeText={(v) => setField("phoneNum", v)}
                   keyboardType="phone-pad"
@@ -243,37 +245,32 @@ export default function BusinessForm() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#F9FAFB" },
+  flex: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 12 },
   scrollContent: { gap: 4, paddingBottom: 40 },
-  pageTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  pageSubtitle: { fontSize: 13, color: "#6B7280", marginBottom: 8 },
+  pageTitle: { fontSize: 20, fontWeight: "700" },
+  pageSubtitle: { fontSize: 13, marginBottom: 8 },
   field: { gap: 4, marginBottom: 8 },
-  label: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  label: { fontSize: 13, fontWeight: "600" },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
   },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 8,
   },
   switchInfo: { gap: 2 },
-  switchHint: { fontSize: 12, color: "#9CA3AF" },
+  switchHint: { fontSize: 12 },
   submitBtn: {
     backgroundColor: "#1E0977",
     borderRadius: 10,

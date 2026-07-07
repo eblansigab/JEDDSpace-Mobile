@@ -12,7 +12,7 @@ const contract_address = "0x0EC104F233A548A348c48FC7476c349A89B7b87d"
 const contract = new ethers.Contract(contract_address,test.output.abi,wallet)
 
 export async function storeHash(file:any,hash:any){
-    try{
+
     const tx = await contract.storeHash(hash)
     await tx.wait()
 
@@ -25,11 +25,8 @@ export async function storeHash(file:any,hash:any){
     console.log(data)
 
     if(error)throw error
-    }
-    catch(err:any){
-        console.error(err)
-        throw err
-    }
+
+
 }
 
 export async function verifyHash(hash:any){

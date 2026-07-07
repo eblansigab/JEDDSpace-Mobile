@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "@/context/ThemeContext";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -26,15 +27,16 @@ function DashboardCard({
   accent?: string;
   children?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
           <Ionicons name={icon} color={accent} size={22} />
         </View>
         <View style={styles.cardTitles}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+          {subtitle ? <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text> : null}
         </View>
         {actionLabel && onPress ? (
           <TouchableOpacity style={[styles.actionBtn, { borderColor: accent }]} onPress={onPress} activeOpacity={0.7}>
@@ -42,13 +44,14 @@ function DashboardCard({
           </TouchableOpacity>
         ) : null}
       </View>
-      {children ? <View style={styles.cardBody}>{children}</View> : null}
+      {children ? <View style={[styles.cardBody, { borderTopColor: colors.border }]}>{children}</View> : null}
     </View>
   );
 }
 
 export default function Index() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [greetingName, setGreetingName] = useState<string | null>(null);
 
@@ -92,7 +95,7 @@ export default function Index() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <MenuDropdown />
 
       <View style={styles.banner}>
@@ -114,7 +117,7 @@ export default function Index() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionLabel}>Overview</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Overview</Text>
 
         <DashboardCard
           icon="mail-outline"
@@ -148,9 +151,9 @@ export default function Index() {
         />
 
         <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerLabel}>Schedule</Text>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.dividerLabel, { color: colors.textMuted }]}>Schedule</Text>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
         </View>
 
         <DashboardCard icon="calendar-outline" title="Calendar" accent="#059669">
@@ -162,7 +165,7 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, backgroundColor: "#F9FAFB", gap: 12 },
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 24, gap: 12 },
   banner: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -184,9 +187,8 @@ const styles = StyleSheet.create({
   },
   bannerAvatarText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   scrollContent: { gap: 10, paddingBottom: 32 },
-  sectionLabel: { fontSize: 11, fontWeight: "700", color: "#9CA3AF", textTransform: "uppercase", marginBottom: -2 },
+  sectionLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", marginBottom: -2 },
   card: {
-    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 14,
     shadowColor: "#000",
@@ -198,12 +200,12 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBadge: { width: 42, height: 42, borderRadius: 8, justifyContent: "center", alignItems: "center" },
   cardTitles: { flex: 1, gap: 2 },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  cardSubtitle: { fontSize: 12, color: "#6B7280" },
+  cardTitle: { fontSize: 14, fontWeight: "700" },
+  cardSubtitle: { fontSize: 12 },
   actionBtn: { borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   actionBtnText: { fontSize: 12, fontWeight: "700" },
-  cardBody: { marginTop: 12, borderTopWidth: 1, borderTopColor: "#F3F4F6", paddingTop: 12 },
+  cardBody: { marginTop: 12, borderTopWidth: 1, paddingTop: 12 },
   dividerRow: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 2 },
-  divider: { flex: 1, height: 1, backgroundColor: "#E5E7EB" },
-  dividerLabel: { fontSize: 11, fontWeight: "700", color: "#9CA3AF", textTransform: "uppercase" },
+  divider: { flex: 1, height: 1 },
+  dividerLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
 });

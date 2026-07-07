@@ -1,8 +1,11 @@
 import ApprovalGuard from "@/components/ApprovalGuard";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Tabs } from "expo-router";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <ApprovalGuard>
       <Tabs
@@ -10,10 +13,10 @@ export default function TabLayout() {
           headerStyle: { backgroundColor: "#1E0977" },
           headerShadowVisible: false,
           headerTintColor: "#fff",
-          tabBarStyle: { backgroundColor: "#1E0977" },
-          tabBarActiveBackgroundColor: "#0C21C1",
+          tabBarStyle: { backgroundColor: colors.tabBar },
+          tabBarActiveBackgroundColor: colors.tabBarActive,
           tabBarActiveTintColor: "#fff",
-          tabBarInactiveTintColor: "rgba(255 255 255 / .75)",
+          tabBarInactiveTintColor: colors.tabBarInactive,
         }}
       >
         <Tabs.Screen
