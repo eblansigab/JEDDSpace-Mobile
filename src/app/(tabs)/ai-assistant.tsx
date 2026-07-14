@@ -536,6 +536,9 @@ export default function AiAssistantScreen() {
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
+        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: '#fff' }]}>
+          <Text style={{color:'#6B7280'}}>Disclaimer: Once you send a message to the JEDDSpace AI Assistant, you agree that your conversations with it will be logged for administrative and archival purposes within JEDD Technologies Corp. Please keep in mind to only send queries related to your work.</Text>
+        </View>
       </KeyboardAvoidingView>
 
       <Modal visible={showSessionPicker} animationType="slide" transparent onRequestClose={() => setShowSessionPicker(false)}>
