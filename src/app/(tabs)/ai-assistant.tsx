@@ -1,7 +1,7 @@
-import { useTheme } from "@/context/ThemeContext";
 import MenuDropdown from "@/components/menuDropdown";
-import { aiService, ChatMessage, getRecommendations } from "@/services/aiService";
+import { useTheme } from "@/context/ThemeContext";
 import { supabase } from "@/lib/supabase";
+import { aiService, ChatMessage, getRecommendations } from "@/services/aiService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import * as DocumentPicker from "expo-document-picker";
@@ -9,7 +9,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -19,7 +18,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 const welcomeMessage: ChatMessage = {
@@ -537,7 +536,7 @@ export default function AiAssistantScreen() {
           </TouchableOpacity>
         </View>
         <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: '#fff' }]}>
-          <Text style={{color:'#6B7280'}}>Disclaimer: Once you send a message to the JEDDSpace AI Assistant, you agree that your conversations with it will be logged for administrative and archival purposes within JEDD Technologies Corp. Please keep in mind to only send queries related to your work.</Text>
+          <Text style={{color:'#6B7280'}}>Disclaimer: All prompts sent through this assistant will be stored within JEDD Technologies Corp. and will not be used to train other models.</Text>
         </View>
       </KeyboardAvoidingView>
 
