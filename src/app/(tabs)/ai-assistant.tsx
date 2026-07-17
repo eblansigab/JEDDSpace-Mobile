@@ -24,7 +24,7 @@ import {
 const welcomeMessage: ChatMessage = {
   role: "assistant",
   content:
-    "I can answer questions about employees, jobs, leave requests, contracts, notifications, documents, and recommendations. You can also upload PDF, TXT, CSV, DOCX, XLSX, PNG, JPG, WEBP, MP3, WAV, or M4A files for analysis.",
+    "I can answer questions about employees, jobs, leave requests, projects, notifications, documents, and recommendations. You can also upload PDF, TXT, CSV, DOCX, XLSX, PNG, JPG, WEBP, MP3, WAV, or M4A files for analysis.",
 };
 
 const quickPrompts = [
@@ -32,13 +32,12 @@ const quickPrompts = [
   { label: "Operations Summary", message: "How are operations today?" },
   { label: "Available Workers", message: "Who is available tomorrow and why?" },
   { label: "Employees on Leave", message: "Show the employees on approved leave and summarize the leave details." },
-  { label: "Contract Summary", message: "Summarize the current contracts." },
+  { label: "Project Summary", message: "Summarize the current projects." },
   { label: "Unread Notifications", message: "Summarize unread notifications." },
   { label: "Recommendation Explanation", message: "Explain why the recommended worker was selected for this assignment window." },
   { label: "Previous Summaries", message: "Show previous AI summaries." },
   { label: "Document Summary", message: "List the uploaded documents." },
-  { label: "Summarize Document", message: "Can you summarize the uploaded employee handbook?" },
-  { label: "Compare Contract", message: "Check for conflicts between an uploaded contract and our existing contracts." },
+  { label: "Compare Project", message: "Check for conflicts between an uploaded project and our existing projects." },
 ];
 
 const logAssistantError = (label: string, error: unknown, meta: Record<string, unknown> = {}) => {
@@ -458,7 +457,7 @@ export default function AiAssistantScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a conversation</Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Ask about jobs, employees, leave, contracts, notifications, or documents.
+              Ask about jobs, employees, leave, projects, notifications, or documents.
             </Text>
           </View>
         }
