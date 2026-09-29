@@ -14,7 +14,7 @@ export const loginWithUsername = async (usernameOrEmail: string, password: strin
     const resolveResponse = await fetch(`${API_BASE_URL}/api/auth`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: normalizedInput }),
+      body: JSON.stringify({ action: "resolve-username", username: normalizedInput }),
     });
 
     let emailToUse = normalizedInput;

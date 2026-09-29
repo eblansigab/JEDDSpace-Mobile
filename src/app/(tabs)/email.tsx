@@ -17,6 +17,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
+import ReactionBar from "@/components/ReactionBar";
+import { getMessageReactions, getMessageReactionCounts, toggleMessageReaction, ReactionKey, ReactionState, ReactionCounts, ReactionResult } from "@/services/reactionService";
 
 type EmailRow = {
   email_id: number;
@@ -31,6 +34,7 @@ type EmailRow = {
   deleted_by_recipient: boolean;
   reply_to_email_id: number | null;
   thread_id: number | null;
+  attachment_url: string | null;
 };
 
 type Tab = "inbox" | "unread" | "sent";
@@ -68,6 +72,11 @@ export default function Emails() {
   const [myEmail, setMyEmail] = useState<string | null>(null);
   const [nameMap, setNameMap] = useState<Record<number, string>>({});
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [attachments, setAttachments] = useState<{ uri: string; name: string; type: string; url?: string }[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [reactions, setReactions] = useState<Record<number, ReactionState>>({});
+  const [reactionCounts, setReactionCounts] = useState<Record<number, ReactionCounts>>({});
+  const [reactionLoading, setReactionLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -231,6 +240,108 @@ export default function Emails() {
     setShowCompose(false);
     setShowRecipientPicker(false);
     setRecipientQuery("");
+    setAttachments([]);
+  };
+
+  const toggleReaction = async (emailId: number, reaction: ReactionKey): Promise<ReactionResult> => {
+    setReactionLoading(true);
+    try {
+      const result = await toggleMessageReaction(emailId, reaction);
+      setReactions((prev) => ({ ...prev, [emailId]: result.mine }));
+      setReactionCounts((prev) => ({ ...prev, [emailId]: result.counts }));
+      return result;
+    } finally {
+      setReactionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedEmail) return;
+
+    void (async () => {
+      const [mine, counts] = await Promise.all([
+        getMessageReactions(selectedEmail.email_id),
+        getMessageReactionCounts(selectedEmail.email_id),
+      ]);
+      if (isMounted) {
+        setReactions((prev) => ({ ...prev, [selectedEmail.email_id]: mine }));
+        setReactionCounts((prev) => ({ ...prev, [selectedEmail.email_id]: counts }));
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedEmail?.email_id]);
+
+  const isSupportedAttachmentType = (mimeType: string, fileName: string): boolean => {
+    const lowerName = fileName.toLowerCase();
+    const lowerType = mimeType.toLowerCase();
+    if (lowerType.startsWith("image/")) return true;
+    if (lowerType === "application/pdf") return true;
+    if (
+      lowerType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      lowerName.endsWith(".docx")
+    )
+      return true;
+    if (
+      lowerType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      lowerName.endsWith(".xlsx")
+    )
+      return true;
+    return false;
+  };
+
+  const handlePickAttachment = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "image/*",
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      if (!isSupportedAttachmentType(asset.mimeType || "", asset.name)) {
+        Alert.alert("Unsupported File", "Only PDF, DOCX, XLSX, and image files are allowed.");
+        return;
+      }
+
+      setAttachments((prev) => [...prev, { uri: asset.uri, name: asset.name, type: asset.mimeType || "application/octet-stream" }]);
+    } catch (err) {
+      console.error("[MobileAI] Attachment picker error:", err);
+      Alert.alert("Error", "Failed to pick attachment.");
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadAttachment = async (uri: string, fileName: string, mimeType: string): Promise<string> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user?.id) throw new Error("Not authenticated");
+
+    const resp = await fetch(uri);
+    const fileBody = await resp.arrayBuffer();
+    const storagePath = `email-attachments/${session.user.id}/${Date.now()}-${fileName}`;
+
+    const { error: uploadError } = await supabase.storage.from("document").upload(storagePath, fileBody, {
+      contentType: mimeType,
+    });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage.from("document").getPublicUrl(storagePath);
+    return urlData.publicUrl;
   };
 
   const handleSend = async () => {
@@ -241,6 +352,15 @@ export default function Emails() {
 
     setSending(true);
     try {
+      let attachmentUrl: string | null = null;
+
+      if (attachments.length > 0) {
+        setUploadingAttachment(true);
+        const uploaded = await uploadAttachment(attachments[0].uri, attachments[0].name, attachments[0].type);
+        attachmentUrl = uploaded;
+        setUploadingAttachment(false);
+      }
+
       const { error } = await supabase.from("email").insert({
         sender_id: myEmployeeId,
         recipient_email: recipientEmail,
@@ -250,6 +370,7 @@ export default function Emails() {
         is_read: false,
         deleted_by_sender: false,
         deleted_by_recipient: false,
+        attachment_url: attachmentUrl,
       });
 
       if (error) throw error;
@@ -262,6 +383,7 @@ export default function Emails() {
       Alert.alert("Error", `Failed to send message: ${message}`);
     } finally {
       setSending(false);
+      setUploadingAttachment(false);
     }
   };
 
@@ -430,6 +552,19 @@ export default function Emails() {
               </View>
               <View style={[styles.detailDivider, { backgroundColor: colors.border }]} />
               <Text style={[styles.detailBody, { color: colors.textSecondary }]}>{selectedEmail.message_body}</Text>
+              {selectedEmail.attachment_url ? (
+                <TouchableOpacity
+                  style={[styles.attachmentLink, { borderColor: colors.border, backgroundColor: colors.background }]}
+                  onPress={() => {
+                    const { Linking } = require("react-native");
+                    Linking.openURL(selectedEmail.attachment_url);
+                  }}
+                >
+                  <Text style={styles.attachmentLinkIcon}>📎</Text>
+                  <Text style={[styles.attachmentLinkText, { color: colors.primary }]}>View Attachment</Text>
+                </TouchableOpacity>
+              ) : null}
+              <ReactionBar reactions={reactions[selectedEmail.email_id] || {}} counts={reactionCounts[selectedEmail.email_id] || {}} onToggle={(reaction) => toggleReaction(selectedEmail.email_id, reaction)} loading={reactionLoading} />
             </ScrollView>
           )}
         </View>
@@ -536,6 +671,30 @@ export default function Emails() {
                 multiline
                 textAlignVertical="top"
               />
+
+              {/* Attachments */}
+              <Text style={[styles.composeLabel, { color: colors.text }]}>Attachments</Text>
+              {attachments.length > 0 && (
+                <View style={styles.attachmentList}>
+                  {attachments.map((att, idx) => (
+                    <View key={idx} style={[styles.attachmentChip, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                      <Text style={[styles.attachmentName, { color: colors.text }]} numberOfLines={1}>
+                        {att.name}
+                      </Text>
+                      <TouchableOpacity onPress={() => handleRemoveAttachment(idx)} hitSlop={8}>
+                        <Text style={[styles.attachmentRemove, { color: colors.danger }]}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.attachBtn, { borderColor: colors.border }]}
+                onPress={handlePickAttachment}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.attachBtnText, { color: colors.primary }]}>+ Attach File</Text>
+              </TouchableOpacity>
 
               <View style={styles.composeActions}>
                 <TouchableOpacity
@@ -645,4 +804,13 @@ const styles = StyleSheet.create({
   sendBtn: { flex: 1, backgroundColor: "#1E0977", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
   sendBtnDisabled: { opacity: 0.6 },
   sendBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  attachmentList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  attachmentChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, maxWidth: "100%" },
+  attachmentName: { fontSize: 13, fontWeight: "500", flex: 1 },
+  attachmentRemove: { fontSize: 14, fontWeight: "700" },
+  attachBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 10, alignItems: "center" },
+  attachBtnText: { fontSize: 13, fontWeight: "600" },
+  attachmentLink: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 10, borderWidth: 1, marginTop: 12 },
+  attachmentLinkIcon: { fontSize: 18 },
+  attachmentLinkText: { fontSize: 14, fontWeight: "600" },
 });

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { isAdminRole } from "@/lib/rbac";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 type NavItem =
@@ -25,7 +26,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 
 export default function MenuDropdown() {
   const [open, setOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminMenu, setIsAdminMenu] = useState(false);
   const { theme, colors, toggleTheme } = useTheme();
   const router = useRouter();
 
@@ -37,14 +38,14 @@ export default function MenuDropdown() {
         } = await supabase.auth.getSession();
         if (!session?.user?.id) return;
         const { data } = await supabase.from("employee").select("role").eq("user_id", session.user.id).maybeSingle();
-        setIsAdmin(data?.role?.toLowerCase() === "admin");
+        setIsAdminMenu(isAdminRole(data?.role));
       } catch {
         // Keep the menu usable even if the role lookup fails.
       }
     })();
   }, []);
 
-  const visibleItems = ALL_NAV_ITEMS.filter((item) => !(item.kind === "link" && item.adminOnly && !isAdmin)).filter(
+  const visibleItems = ALL_NAV_ITEMS.filter((item) => !(item.kind === "link" && item.adminOnly && !isAdminMenu)).filter(
     (item, index, items) => item.kind !== "section" || items.slice(index + 1).some((candidate) => candidate.kind === "link"),
   );
 

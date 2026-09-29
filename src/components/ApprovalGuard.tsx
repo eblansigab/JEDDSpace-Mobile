@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { isAdmin } from "@/lib/rbac";
 
 interface ApprovalGuardProps {
   children: React.ReactNode;
@@ -17,9 +18,8 @@ export default function ApprovalGuard({ children }: ApprovalGuardProps) {
   const isAuthRoute = pathname === "/login" || pathname === "/sign-in";
   const isApprovalRoute = pathname === "/awaiting-approval";
   const status = employee?.registration_status;
-  const isAdmin = employee?.role?.toLowerCase() === "admin";
-  
-  const needsApproval = !isAdmin && (status === "pending" || status === "rejected");
+
+  const needsApproval = !isAdmin(employee) && (status === "pending" || status === "rejected");
   const shouldRedirectToApproval = !isAuthRoute && !isApprovalRoute && session?.user?.id && needsApproval;
 
   useEffect(() => {

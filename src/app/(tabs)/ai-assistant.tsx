@@ -536,6 +536,9 @@ export default function AiAssistantScreen() {
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
+        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: '#fff' }]}>
+          <Text style={{color:'#6B7280'}}>Disclaimer: All prompts sent through this assistant will be stored within JEDD Technologies Corp. and will not be used to train other models.</Text>
+        </View>
       </KeyboardAvoidingView>
 
       <Modal visible={showSessionPicker} animationType="slide" transparent onRequestClose={() => setShowSessionPicker(false)}>

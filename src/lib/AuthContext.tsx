@@ -31,6 +31,13 @@ const AuthContext = createContext<AuthContextType>({
   refreshEmployeeData: async () => {},
 });
 
+/**
+ * Module-level cache of the resolved employee. Populated by AuthProvider once
+ * at sign-in (and on refresh), so non-React services can reuse the same
+ * resolution without re-querying the database on every call.
+ */
+let cachedEmployee: EmployeeData | null = null;
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -46,12 +53,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle();
 
       if (!error && data) {
-        setEmployee(data as EmployeeData);
+        const resolved = data as EmployeeData;
+        cachedEmployee = resolved;
+        setEmployee(resolved);
       } else {
+        cachedEmployee = null;
         setEmployee(null);
       }
     } catch (err) {
       console.error("[AuthContext] Error fetching employee data:", err);
+      cachedEmployee = null;
       setEmployee(null);
     }
   };
@@ -90,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(nextSession?.user ?? null);
 
       if (event === "SIGNED_OUT") {
+        cachedEmployee = null;
         setEmployee(null);
       } else if (nextSession?.user?.id) {
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
@@ -118,3 +130,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+/**
+ * Centralized, cached auth-UUID -> employee resolver.
+ *
+ * The reaction tables (announcement_reactions, message_reactions) are keyed on
+ * employee_id (integer FK -> employee.employee_id), NOT on the Supabase auth
+ * user UUID. Every mobile feature that needs employee data must resolve it
+ * through this same mapping so identity handling stays consistent with the web.
+ *
+ * Reuses the same "employee.user_id = auth user id" mapping already used across
+ * the app (email.tsx, business-form.tsx, leave-form.tsx, profile.tsx).
+ *
+ * Resolution is cached: the employee record is loaded once at sign-in (and on
+ * TOKEN_REFRESHED / refreshEmployeeData) into AuthContext, so callers here do
+ * NOT re-query the database on every reaction toggle or lookup. Only when no
+ * cached employee exists (e.g. called before AuthProvider initialized) does it
+ * fall back to a single live lookup.
+ */
+export const getCurrentEmployee = async (): Promise<EmployeeData | null> => {
+  if (cachedEmployee) {
+    return cachedEmployee;
+  }
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const userId = session?.user?.id;
+    if (!userId) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("employee")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    cachedEmployee = data as EmployeeData;
+    return cachedEmployee;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Convenience accessor for just the employee_id. Backed by the same cached
+ * resolution as getCurrentEmployee(). Returns null when unauthenticated or the
+ * employee record is missing.
+ */
+export const getCurrentEmployeeId = async (): Promise<string | null> => {
+  const employee = await getCurrentEmployee();
+  return employee?.employee_id ? String(employee.employee_id) : null;
+};

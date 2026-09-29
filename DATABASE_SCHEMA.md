@@ -3,7 +3,6 @@
 
 -- DONT EDIT THIS, ONLY THE DEVELOPER CAN EDIT THIS PAGE, THIS IS ONLY FOR DATABASE REFERENCE
 
-
 CREATE TABLE public.employee (
   employee_id integer NOT NULL DEFAULT nextval('employee_employee_id_seq'::regclass),
   first_name character varying NOT NULL,
@@ -22,11 +21,13 @@ CREATE TABLE public.employee (
   date_terminated timestamp without time zone,
   date_rehired timestamp without time zone,
   email character varying UNIQUE,
-  registration_status character varying DEFAULT 'pending'::character varying,
+  registration_status character varying DEFAULT 'approved'  ::character varying,
   employee_type character varying DEFAULT 'staff'::character varying,
   avatar_url text,
   username text UNIQUE,
+  role_id bigint,
   CONSTRAINT employee_pkey PRIMARY KEY (employee_id),
+  CONSTRAINT fk_employee_role FOREIGN KEY (role_id) REFERENCES public.roles(role_id),
   CONSTRAINT employee_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id),
   CONSTRAINT employee_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -37,6 +38,8 @@ CREATE TABLE public.announcement (
   status USER-DEFINED DEFAULT 'unpublished'::announcement_status,
   created_at timestamp without time zone DEFAULT now(),
   user_id uuid,
+  visibility_scope text NOT NULL DEFAULT 'ORGANIZATION'::text,
+  visibility_target text,
   CONSTRAINT announcement_pkey PRIMARY KEY (announcement_id),
   CONSTRAINT announcement_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.employee(user_id)
 );
@@ -194,7 +197,8 @@ CREATE TABLE public.user_sessions (
   created_at timestamp with time zone DEFAULT now(),
   last_active timestamp with time zone DEFAULT now(),
   is_current boolean DEFAULT false,
-  CONSTRAINT user_sessions_pkey PRIMARY KEY (session_id)
+  CONSTRAINT user_sessions_pkey PRIMARY KEY (session_id),
+  CONSTRAINT fk_user_sessions FOREIGN KEY (user_id) REFERENCES public.employee(user_id)
 );
 CREATE TABLE public.ai_chat_logs (
   chat_id bigint NOT NULL DEFAULT nextval('ai_chat_logs_chat_id_seq'::regclass),
@@ -219,4 +223,118 @@ CREATE TABLE public.test_hash (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   hash text,
   CONSTRAINT test_hash_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.roles (
+  role_id bigint NOT NULL DEFAULT nextval('roles_role_id_seq'::regclass),
+  role_name character varying NOT NULL UNIQUE,
+  hierarchy_level integer NOT NULL CHECK (hierarchy_level > 0),
+  parent_role_id bigint,
+  description text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  is_protected boolean NOT NULL DEFAULT false,
+  CONSTRAINT roles_pkey PRIMARY KEY (role_id),
+  CONSTRAINT fk_parent_role FOREIGN KEY (parent_role_id) REFERENCES public.roles(role_id)
+);
+CREATE TABLE public.permissions (
+  permission_id bigint NOT NULL DEFAULT nextval('permissions_permission_id_seq'::regclass),
+  module character varying NOT NULL,
+  action character varying NOT NULL,
+  description text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT permissions_pkey PRIMARY KEY (permission_id)
+);
+CREATE TABLE public.role_permissions (
+  role_permission_id bigint NOT NULL DEFAULT nextval('role_permissions_role_permission_id_seq'::regclass),
+  role_id bigint NOT NULL,
+  permission_id bigint NOT NULL,
+  scope text NOT NULL CHECK (scope = ANY (ARRAY['SELF'::text, 'DEPARTMENT'::text, 'SUBORDINATE'::text, 'ALL'::text])),
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT role_permissions_pkey PRIMARY KEY (role_permission_id),
+  CONSTRAINT fk_role FOREIGN KEY (role_id) REFERENCES public.roles(role_id),
+  CONSTRAINT fk_permission FOREIGN KEY (permission_id) REFERENCES public.permissions(permission_id)
+);
+CREATE TABLE public.announcement_views (
+  announcement_view_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  announcement_id integer NOT NULL,
+  employee_id integer NOT NULL,
+  viewed_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT announcement_views_pkey PRIMARY KEY (announcement_view_id),
+  CONSTRAINT announcement_views_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.announcement(announcement_id),
+  CONSTRAINT announcement_views_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.announcement_reactions (
+  announcement_reaction_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  announcement_id bigint NOT NULL,
+  employee_id bigint NOT NULL,
+  reaction_type text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT announcement_reactions_pkey PRIMARY KEY (announcement_reaction_id),
+  CONSTRAINT announcement_reactions_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.announcement(announcement_id),
+  CONSTRAINT announcement_reactions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.message_reactions (
+  message_reaction_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  email_id bigint NOT NULL,
+  employee_id bigint NOT NULL,
+  reaction_type text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT message_reactions_pkey PRIMARY KEY (message_reaction_id),
+  CONSTRAINT message_reactions_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.email(email_id),
+  CONSTRAINT message_reactions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.message_read_receipts (
+  message_read_receipt_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  email_id integer NOT NULL,
+  employee_id integer NOT NULL,
+  read_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT message_read_receipts_pkey PRIMARY KEY (message_read_receipt_id),
+  CONSTRAINT message_read_receipts_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.email(email_id),
+  CONSTRAINT message_read_receipts_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.announcement_images (
+  announcement_image_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  announcement_id integer NOT NULL,
+  image_url text NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT announcement_images_pkey PRIMARY KEY (announcement_image_id),
+  CONSTRAINT announcement_images_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.announcement(announcement_id)
+);
+CREATE TABLE public.announcement_comments (
+  comment_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  announcement_id integer NOT NULL,
+  employee_id integer NOT NULL,
+  comment_text text NOT NULL,
+  image_url text,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT announcement_comments_pkey PRIMARY KEY (comment_id),
+  CONSTRAINT announcement_comments_announcement_id_fkey FOREIGN KEY (announcement_id) REFERENCES public.announcement(announcement_id),
+  CONSTRAINT announcement_comments_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.comment_reactions (
+  comment_reaction_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  comment_id integer NOT NULL,
+  employee_id integer NOT NULL,
+  reaction_type character varying NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  updated_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT comment_reactions_pkey PRIMARY KEY (comment_reaction_id),
+  CONSTRAINT comment_reactions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.announcement_comments(comment_id),
+  CONSTRAINT comment_reactions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employee(employee_id)
+);
+CREATE TABLE public.email_attachment (
+  email_attachment_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  email_id integer NOT NULL,
+  file_name text NOT NULL,
+  file_type text NOT NULL,
+  file_size bigint NOT NULL,
+  file_path text NOT NULL,
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT email_attachment_pkey PRIMARY KEY (email_attachment_id),
+  CONSTRAINT email_attachment_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.email(email_id)
 );
