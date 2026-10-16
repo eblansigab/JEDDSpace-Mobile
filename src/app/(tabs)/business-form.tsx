@@ -163,18 +163,18 @@ export default function BusinessForm() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.pageTitle}>Official Business Form</Text>
-          <Text style={styles.pageSubtitle}>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Official Business Form</Text>
+          <Text style={[styles.pageSubtitle, { color: colors.textSecondary }]}>
             Submit your official business trip details for approval.
           </Text>
 
           {/* Project */}
           <View style={styles.field}>
-            <Text style={styles.label}>Project Name *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Project Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="Enter project name"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.project}
               onChangeText={(v) => setField("project", v)}
             />
@@ -221,8 +221,8 @@ export default function BusinessForm() {
           {/* Company Car toggle */}
           <View style={[styles.switchRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.switchInfo}>
-              <Text style={styles.label}>Company Car</Text>
-              <Text style={styles.switchHint}>
+              <Text style={[styles.label, { color: colors.text }]}>Company Car</Text>
+              <Text style={[styles.switchHint, { color: colors.textSecondary }]}>
                 Will a company vehicle be used?
               </Text>
             </View>
@@ -230,7 +230,7 @@ export default function BusinessForm() {
               value={form.companyCar}
               onValueChange={(v) => setField("companyCar", v)}
               trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={form.companyCar ? "#fff" : colors.textMuted}
+              thumbColor={form.companyCar ? colors.surface : colors.textMuted}
             />
           </View>
 
@@ -238,20 +238,20 @@ export default function BusinessForm() {
           {form.companyCar && (
             <>
               <View style={styles.field}>
-                <Text style={styles.label}>Company Car *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Company Car *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="Enter the company car to use"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textMuted}
                   value={form.carName}
                   onChangeText={(v) => setField("carName", v)}
                 />
               </View>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Driver Name *</Text>
+                <Text style={[styles.label, { color: colors.text }]}>Driver Name *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   placeholder="Enter driver's full name"
                   placeholderTextColor={colors.textMuted}
                   value={form.driverName}
@@ -261,11 +261,11 @@ export default function BusinessForm() {
             </>
           )}
           <View style={styles.field}>
-            <Text style={styles.label}>Phone Number *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>Phone Number *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
               placeholder="Enter contact phone number"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMuted}
               value={form.phoneNum}
               onChangeText={(v) => setField("phoneNum", v)}
               keyboardType="phone-pad"
@@ -273,15 +273,15 @@ export default function BusinessForm() {
           </View>
           {/* Submit */}
           <TouchableOpacity
-            style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+            style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={submitting}
             activeOpacity={0.8}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.surface} size="small" />
             ) : (
-              <Text style={styles.submitBtnText}>Submit Official Business</Text>
+              <Text style={[styles.submitBtnText, { color: colors.surface }]}>Submit Official Business</Text>
             )}
           </TouchableOpacity>
 
@@ -320,12 +320,11 @@ const styles = StyleSheet.create({
   switchInfo: { gap: 2 },
   switchHint: { fontSize: 12 },
   submitBtn: {
-    backgroundColor: "#1E0977",
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  submitBtnText: { fontSize: 15, fontWeight: "700" },
 });
