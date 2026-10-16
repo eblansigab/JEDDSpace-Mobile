@@ -1,7 +1,7 @@
 import MenuDropdown from "@/components/menuDropdown";
 import { useTheme } from "@/context/ThemeContext";
-import { supabase } from "@/lib/supabase";
 import { aiService, ChatMessage, getRecommendations } from "@/services/aiService";
+import { supabase } from "@/lib/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import * as DocumentPicker from "expo-document-picker";
@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -18,13 +19,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 const welcomeMessage: ChatMessage = {
   role: "assistant",
   content:
-    "I can answer questions about employees, jobs, leave requests, projects, notifications, documents, and recommendations. You can also upload PDF, TXT, CSV, DOCX, XLSX, PNG, JPG, WEBP, MP3, WAV, or M4A files for analysis.",
+    "I can answer questions about employees, jobs, leave requests, contracts, notifications, documents, and recommendations. You can also upload PDF, TXT, CSV, DOCX, XLSX, PNG, JPG, WEBP, MP3, WAV, or M4A files for analysis.",
 };
 
 const quickPrompts = [
@@ -32,12 +33,13 @@ const quickPrompts = [
   { label: "Operations Summary", message: "How are operations today?" },
   { label: "Available Workers", message: "Who is available tomorrow and why?" },
   { label: "Employees on Leave", message: "Show the employees on approved leave and summarize the leave details." },
-  { label: "Project Summary", message: "Summarize the current projects." },
+  { label: "Contract Summary", message: "Summarize the current contracts." },
   { label: "Unread Notifications", message: "Summarize unread notifications." },
   { label: "Recommendation Explanation", message: "Explain why the recommended worker was selected for this assignment window." },
   { label: "Previous Summaries", message: "Show previous AI summaries." },
   { label: "Document Summary", message: "List the uploaded documents." },
-  { label: "Compare Project", message: "Check for conflicts between an uploaded project and our existing projects." },
+  { label: "Summarize Document", message: "Can you summarize the uploaded employee handbook?" },
+  { label: "Compare Contract", message: "Check for conflicts between an uploaded contract and our existing contracts." },
 ];
 
 const logAssistantError = (label: string, error: unknown, meta: Record<string, unknown> = {}) => {
@@ -356,16 +358,16 @@ export default function AiAssistantScreen() {
     const isUser = item.role === "user";
     return (
       <View style={[styles.messageRow, isUser ? styles.userRow : styles.assistantRow]}>
-        <View style={[styles.messageBubble, isUser ? styles.userBubble : [styles.assistantBubble, { backgroundColor: colors.surface, borderColor: colors.border }]]}>
+        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble, isUser ? { backgroundColor: colors.primary } : { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {!isUser && (
             <View style={styles.assistantHeader}>
-              <View style={styles.aiAvatar}>
-                <Text style={styles.aiAvatarText}>AI</Text>
+              <View style={[styles.aiAvatar, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.aiAvatarText, { color: colors.primary }]}>AI</Text>
               </View>
               <Text style={[styles.assistantName, { color: colors.primary }]}>JEDDSpace AI</Text>
             </View>
           )}
-          <Text style={[styles.messageText, isUser && styles.userMessageText, { color: isUser ? "#fff" : colors.text }]}>{item.content}</Text>
+          <Text style={[styles.messageText, { color: colors.text }, isUser && { color: "#fff" }]}>{item.content}</Text>
         </View>
       </View>
     );
@@ -388,7 +390,7 @@ export default function AiAssistantScreen() {
     return (
       <TouchableOpacity
         key={s}
-        style={[styles.sessionModalOption, isActive && styles.sessionModalOptionActive]}
+        style={[styles.sessionModalOption, { backgroundColor: colors.surface, borderColor: colors.border }, isActive && { backgroundColor: colors.primary, borderColor: colors.primary }]}
         onPress={() => void handleSwitchSession(s)}
       >
         <View style={styles.sessionModalLeft}>
@@ -397,14 +399,14 @@ export default function AiAssistantScreen() {
             size={18}
             color={isActive ? "#fff" : colors.textSecondary}
           />
-          <Text style={[styles.sessionModalText, isActive && styles.sessionModalTextActive]}>{label}</Text>
+          <Text style={[styles.sessionModalText, { color: colors.text }, isActive && { color: "#fff" }]}>{label}</Text>
         </View>
         <View style={styles.sessionModalActions}>
           {isActive ? (
-            <Text style={styles.sessionModalActiveLabel}>Active</Text>
+            <Text style={[styles.sessionModalActiveLabel, { color: colors.primaryLight }]}>Active</Text>
           ) : (
             <TouchableOpacity onPress={() => void handleSwitchSession(s)} hitSlop={8}>
-              <Text style={[styles.sessionModalSwitch, { color: colors.primary }]}>Switch</Text>
+              <Text style={[styles.sessionModalSwitch, { color: colors.primaryLight }]}>Switch</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -420,11 +422,11 @@ export default function AiAssistantScreen() {
         <View style={styles.headerTop}>
           <View style={styles.headerTextBlock}>
             <Text style={[styles.title, { color: colors.text }]}>AI Assistant</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}> 
               {`JEDDSpace AI is ready${profile?.first_name ? `, ${profile.first_name}` : ""}.`}
             </Text>
           </View>
-          <TouchableOpacity style={styles.sessionBtn} onPress={() => setShowSessionPicker(true)} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.sessionBtn, { borderColor: colors.border, backgroundColor: colors.background }]} onPress={() => setShowSessionPicker(true)} activeOpacity={0.7}>
             <Ionicons name="git-branch-outline" size={18} color={colors.primary} />
             <Text style={[styles.sessionBtnText, { color: colors.primary }]}>Chats</Text>
           </TouchableOpacity>
@@ -435,7 +437,7 @@ export default function AiAssistantScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={handleNewChat} disabled={loading} hitSlop={8}>
             <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-            <Text style={[styles.iconBtnText, { color: colors.text }]}>New Chat</Text>
+            <Text style={[styles.iconBtnText, { color: colors.textSecondary }]}>New Chat</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -452,21 +454,21 @@ export default function AiAssistantScreen() {
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="sparkles-outline" size={32} color={colors.primary} />
+            <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryLight }]}>
+                <Ionicons name="sparkles-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a conversation</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Ask about jobs, employees, leave, projects, notifications, or documents.
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a conversation</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}> 
+              Ask about jobs, employees, leave, contracts, notifications, or documents.
             </Text>
           </View>
         }
       />
 
       {loading && (
-        <View style={[styles.statusPill, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.statusPill, { backgroundColor: colors.primaryLight }]}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.statusText, { color: colors.textSecondary }]}>{loadingStatus || "Thinking..."}</Text>
+          <Text style={[styles.statusText, { color: colors.primary }]}>{loadingStatus || "Thinking..."}</Text>
         </View>
       )}
 
@@ -474,9 +476,9 @@ export default function AiAssistantScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.attachmentScroll}>
           <View style={styles.attachmentRow}>
             {attachments.map((att, idx) => (
-              <View key={idx} style={styles.attachmentChip}>
+              <View key={idx} style={[styles.attachmentChip, { backgroundColor: colors.primaryLight }]}>
                 <Ionicons name="document-attach-outline" size={14} color={colors.primary} />
-                <Text style={styles.attachmentName} numberOfLines={1}>
+                <Text style={[styles.attachmentName, { color: colors.primary }]} numberOfLines={1}>
                   {att.name}
                 </Text>
                 <TouchableOpacity onPress={() => setAttachments((c) => c.filter((_, i) => i !== idx))} hitSlop={8}>
@@ -504,7 +506,7 @@ export default function AiAssistantScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={90}
       >
-        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <View style={styles.inputRow}>
           <TouchableOpacity
             style={[styles.attachBtn, loading && styles.sendBtnDisabled]}
             onPress={() => void handlePickAttachment()}
@@ -515,7 +517,7 @@ export default function AiAssistantScreen() {
             <Ionicons name="attach-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+            style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.text }]}
             placeholder="Ask about employees, jobs, leave..."
             placeholderTextColor={colors.textMuted}
             value={prompt}
@@ -525,7 +527,7 @@ export default function AiAssistantScreen() {
             returnKeyType="send"
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!prompt.trim() || loading) && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, { backgroundColor: colors.primary }, (!prompt.trim() || loading) && styles.sendBtnDisabled]}
             onPress={() => void runPrompt(prompt, true)}
             disabled={!prompt.trim() || loading}
             activeOpacity={0.7}
@@ -534,13 +536,10 @@ export default function AiAssistantScreen() {
             <Ionicons name="send" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
-        <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: '#fff' }]}>
-          <Text style={{color:'#6B7280'}}>Disclaimer: All prompts sent through this assistant will be stored within JEDD Technologies Corp. and will not be used to train other models.</Text>
-        </View>
       </KeyboardAvoidingView>
 
       <Modal visible={showSessionPicker} animationType="slide" transparent onRequestClose={() => setShowSessionPicker(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowSessionPicker(false)}>
+        <Pressable style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]} onPress={() => setShowSessionPicker(false)}>
           <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Chat History</Text>
@@ -549,11 +548,11 @@ export default function AiAssistantScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.modalList}>
-              <TouchableOpacity style={styles.newChatRow} onPress={handleNewChat} activeOpacity={0.7}>
-                <View style={styles.newChatIcon}>
+              <TouchableOpacity style={[styles.newChatRow, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={handleNewChat} activeOpacity={0.7}>
+                <View style={[styles.newChatIcon, { backgroundColor: colors.primary }]}>
                   <Ionicons name="add" size={20} color="#fff" />
                 </View>
-                <Text style={styles.newChatText}>New Chat</Text>
+                <Text style={[styles.newChatText, { color: colors.text }]}>New Chat</Text>
               </TouchableOpacity>
               {sessions.map((s, idx) => renderSessionOption(s, idx))}
             </ScrollView>
@@ -578,6 +577,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
+    borderBottomWidth: 1,
     gap: 10,
   },
   headerTop: {
@@ -650,7 +650,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   userBubble: {
-    backgroundColor: "#1E0977",
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
@@ -667,14 +666,12 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
   },
   aiAvatarText: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#1E0977",
   },
   assistantName: {
     fontSize: 11,
@@ -685,7 +682,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   userMessageText: {
-    color: "#fff",
   },
   statusPill: {
     flexDirection: "row",
@@ -713,7 +709,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
@@ -806,18 +801,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E0977",
     alignItems: "center",
     justifyContent: "center",
   },
   sendBtnText: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "700",
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   modalSheet: {
@@ -855,7 +847,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#1E0977",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -873,8 +864,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sessionModalOptionActive: {
-    backgroundColor: "#1E0977",
-    borderColor: "#1E0977",
   },
   sessionModalLeft: {
     flexDirection: "row",
@@ -886,7 +875,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sessionModalTextActive: {
-    color: "#fff",
   },
   sessionModalActions: {
     flexDirection: "row",
@@ -895,12 +883,10 @@ const styles = StyleSheet.create({
   },
   sessionModalActiveLabel: {
     fontSize: 12,
-    color: "#C7D2FE",
     fontWeight: "600",
   },
   sessionModalSwitch: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#EEF2FF",
   },
 });

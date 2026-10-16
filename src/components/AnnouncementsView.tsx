@@ -1,94 +1,46 @@
 import { useEffect, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, Text, View, TouchableOpacity, Modal, TextInput } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Card from "@/components/card";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
-import { useTheme } from "@/context/ThemeContext";
-import { useAuth } from "@/lib/AuthContext";
-import { Alert } from "react-native";
-import { isAdmin } from "@/lib/rbac";
-import { getSeenAnnouncementIds, markAnnouncementAsSeen, getAnnouncementReactions, getAnnouncementReactionCounts, toggleAnnouncementReaction, ReactionKey, ReactionState, ReactionCounts, ReactionResult } from "@/services/reactionService";
-import ReactionBar from "@/components/ReactionBar";
-
-export const ANNOUNCEMENT_STATUSES = ["Published", "Draft", "Archived"];
 
 type Announcement = {
-  announcement_id: string;
+  announcement_id?: string;
+  id?: string;
   title: string;
-  body: string;
-  status: string;
-  created_at: string | null;
-  created_by?: string;
-};
-
-type AnnouncementForm = {
-  title: string;
-  body: string;
-  status: string;
+  body?: string;
+  description?: string;
+  created_at?: string | null;
+  sender?: string;
+  isUnread?: boolean;
 };
 
 export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }) {
-  const { colors } = useTheme();
-  const { employee } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editBody, setEditBody] = useState("");
-  const [editStatus, setEditStatus] = useState("Published");
-  const [isSaving, setIsSaving] = useState(false);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
-  const [reactions, setReactions] = useState<Record<string, ReactionState>>({});
-  const [reactionCounts, setReactionCounts] = useState<Record<string, ReactionCounts>>({});
-  const [reactionLoading, setReactionLoading] = useState(false);
-
-  const admin = isAdmin(employee);
 
   useEffect(() => {
     let isMounted = true;
     void (async () => {
       try {
-        const [ids, announcements] = await Promise.all([
-          getSeenAnnouncementIds(),
-          supabase.from("announcement").select("*").order("created_at", { ascending: false }),
-        ]);
+        const { data, error: fetchError } = await supabase
+          .from("announcement")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-        if (!isMounted) return;
+        if (fetchError) throw fetchError;
 
-        setSeenIds(new Set(ids));
-
-        if (announcements.error) throw announcements.error;
-
-        const mapped: Announcement[] = (announcements.data || []).map((row: Record<string, unknown>) => ({
+        const mapped: Announcement[] = (data || []).map((row: Record<string, unknown>) => ({
           announcement_id: String(row.announcement_id || row.id || ""),
           title: String(row.title || "Untitled"),
-          body: row.body ? String(row.body) : "",
-          status: String(row.status || "Published"),
+          body: row.body ? String(row.body) : row.description ? String(row.description) : "",
           created_at: row.created_at ? String(row.created_at) : null,
-          created_by: row.created_by ? String(row.created_by) : undefined,
+          sender: row.sender ? String(row.sender) : row.created_by ? String(row.created_by) : "Company",
+          isUnread: Boolean(row.is_unread ?? row.isUnread ?? false),
         }));
 
-        const reactionEntries = await Promise.all(
-          mapped.map(async (item) => {
-            const [reactionMap, countMap] = await Promise.all([
-              getAnnouncementReactions(item.announcement_id),
-              getAnnouncementReactionCounts(item.announcement_id),
-            ]);
-            return [item.announcement_id, reactionMap, countMap] as const;
-          })
-        );
-
         if (isMounted) {
-          const reactionMap: Record<string, ReactionState> = {};
-          const countMap: Record<string, ReactionCounts> = {};
-          reactionEntries.forEach(([id, reactions, counts]) => {
-            reactionMap[id] = reactions;
-            countMap[id] = counts;
-          });
-          setReactions(reactionMap);
-          setReactionCounts(countMap);
           setAnnouncements(mapped);
           setError(null);
         }
@@ -106,95 +58,10 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
     };
   }, []);
 
-  const markAsSeen = async (announcementId: string) => {
-    const updated = await markAnnouncementAsSeen(announcementId);
-    setSeenIds(new Set(updated));
-  };
-
-  const toggleReaction = async (announcementId: string, reaction: ReactionKey): Promise<ReactionResult> => {
-    setReactionLoading(true);
-    try {
-      const result = await toggleAnnouncementReaction(announcementId, reaction);
-      setReactions((prev) => ({ ...prev, [announcementId]: result.mine }));
-      setReactionCounts((prev) => ({ ...prev, [announcementId]: result.counts }));
-      return result;
-    } finally {
-      setReactionLoading(false);
-    }
-  };
-
-  const handlePressAnnouncement = (item: Announcement) => {
-    void markAsSeen(item.announcement_id);
-  };
-
-  const openEditModal = (announcement: Announcement) => {
-    setEditingAnnouncement(announcement);
-    setEditTitle(announcement.title || "");
-    setEditBody(announcement.body || "");
-    setEditStatus(announcement.status || "Published");
-  };
-
-  const closeEditModal = () => {
-    setEditingAnnouncement(null);
-    setEditTitle("");
-    setEditBody("");
-    setEditStatus("Published");
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingAnnouncement) return;
-
-    if (!editTitle.trim() || !editBody.trim()) {
-      Alert.alert("Missing Details", "Please complete the title and body.");
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const { error: updateError } = await supabase
-        .from("announcement")
-        .update({
-          title: editTitle.trim(),
-          body: editBody.trim(),
-          status: editStatus,
-        })
-        .eq("announcement_id", Number(editingAnnouncement.announcement_id));
-
-      if (updateError) throw updateError;
-
-      Alert.alert("Success", "Announcement updated successfully.");
-      closeEditModal();
-      setAnnouncements((prev) =>
-        prev.map((a) =>
-          a.announcement_id === editingAnnouncement.announcement_id
-            ? { ...a, title: editTitle.trim(), body: editBody.trim(), status: editStatus }
-            : a
-        )
-      );
-    } catch (err) {
-      console.error("[MobileAI] Update announcement error:", err);
-      Alert.alert("Error", "Unable to update announcement.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-   const visibleAnnouncements = admin ? announcements : announcements.filter((item) => (item.status || "Published") === "Published");
-
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = visibleAnnouncements.filter((item) => {
-    const matchesStatus = statusFilter === "All" || (item.status || "Published") === statusFilter;
-    const matchesQuery =
-      !q ||
-      item.title.toLowerCase().includes(q) ||
-      (item.body || "").toLowerCase().includes(q);
-    return matchesStatus && matchesQuery;
-  });
-
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={[styles.centerText, { color: colors.textSecondary }]}>Loading announcements...</Text>
+        <Text style={styles.centerText}>Loading announcements...</Text>
       </View>
     );
   }
@@ -202,7 +69,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -210,167 +77,68 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (announcements.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="megaphone-outline" size={40} color={colors.textMuted} />
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No announcements yet.</Text>
+        <Ionicons name="megaphone-outline" size={40} color="#9CA3AF" />
+        <Text style={styles.emptyText}>No announcements yet.</Text>
       </View>
     );
   }
+
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q
+    ? announcements.filter((a) =>
+        a.title.toLowerCase().includes(q) ||
+        (a.body || "").toLowerCase().includes(q) ||
+        (a.sender || "").toLowerCase().includes(q)
+      )
+    : announcements;
 
   if (filtered.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="search-outline" size={40} color={colors.textMuted} />
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No matching announcements.</Text>
+        <Ionicons name="search-outline" size={40} color="#9CA3AF" />
+        <Text style={styles.emptyText}>No matching announcements.</Text>
       </View>
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Published":
-        return "#059669";
-      case "Draft":
-        return "#D97706";
-      case "Archived":
-        return "#64748b";
-      default:
-        return colors.textSecondary;
-    }
-  };
-
   return (
-    <View>
-      {admin && (
-        <View style={styles.filterRow}>
-          {ANNOUNCEMENT_STATUSES.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterChip,
-                statusFilter === status && { backgroundColor: colors.primary },
-                statusFilter !== status && { borderColor: colors.border, borderWidth: 1 },
-              ]}
-              onPress={() => setStatusFilter(status)}
-            >
-              <Text style={[styles.filterChipText, statusFilter === status && { color: "#fff" }, statusFilter !== status && { color: colors.text }]}>
-                {status}
+    <FlatList
+      data={filtered}
+      keyExtractor={(item) => item.announcement_id || item.id || Math.random().toString()}
+      contentContainerStyle={styles.listContent}
+      showsVerticalScrollIndicator={false}
+      renderItem={({ item }) => (
+        <Card style={[styles.card, item.isUnread && styles.unreadCard]}>
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={2}>
+                {item.title}
               </Text>
-            </TouchableOpacity>
-          ))}
-          {statusFilter !== "All" && (
-            <TouchableOpacity onPress={() => setStatusFilter("All")}>
-              <Text style={[styles.clearFilterText, { color: colors.primary }]}>Clear</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.announcement_id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => {
-          const isUnread = !seenIds.has(item.announcement_id);
-          return (
-            <TouchableOpacity onPress={() => handlePressAnnouncement(item)} activeOpacity={0.7}>
-              <Card style={[styles.card, isUnread && styles.unreadCard]}>
-                <View style={styles.header}>
-                  <View style={styles.titleRow}>
-                    <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    {isUnread && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-                    {admin && (
-                      <TouchableOpacity onPress={() => openEditModal(item)} hitSlop={8}>
-                        <Text style={[styles.editBtn, { color: colors.primary }]}>Edit</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <View style={styles.metaRow}>
-                    <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                      {item.created_by || "Company"}
-                    </Text>
-                    <View style={[styles.metaDot, { backgroundColor: colors.border }]} />
-                    <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                      {item.created_at ? formatDate(item.created_at) : ""}
-                    </Text>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + "20" }]}>
-                      <Text style={[styles.statusBadgeText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-                    </View>
-                  </View>
-                </View>
-                {item.body ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
-                {item.body ? (
-                  <Text style={[styles.body, { color: colors.textSecondary }]} numberOfLines={4}>
-                    {item.body}
-                  </Text>
-                ) : null}
-                <ReactionBar reactions={reactions[item.announcement_id] || {}} counts={reactionCounts[item.announcement_id] || {}} onToggle={(reaction) => toggleReaction(item.announcement_id, reaction)} loading={reactionLoading} />
-              </Card>
-            </TouchableOpacity>
-          );
-        }}
-      />
-
-      {/* Edit Modal */}
-      <Modal visible={Boolean(editingAnnouncement)} animationType="slide" onRequestClose={closeEditModal}>
-        <View style={[styles.modalScreen, { backgroundColor: colors.surface }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={closeEditModal} hitSlop={12}>
-              <Text style={[styles.backBtn, { color: colors.primary }]}>← Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSaveEdit} hitSlop={12} disabled={isSaving}>
-              <Text style={[styles.saveBtn, { color: isSaving ? colors.textMuted : colors.primary }]}>
-                {isSaving ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={styles.modalBody}>
-            <Text style={[styles.modalLabel, { color: colors.text }]}>Title</Text>
-            <TextInput
-              style={[styles.modalInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              value={editTitle}
-              onChangeText={setEditTitle}
-              placeholder="Enter announcement title"
-              placeholderTextColor={colors.textMuted}
-            />
-
-            <Text style={[styles.modalLabel, { color: colors.text }]}>Content</Text>
-            <TextInput
-              style={[styles.modalTextArea, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              value={editBody}
-              onChangeText={setEditBody}
-              placeholder="Write your announcement here..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <Text style={[styles.modalLabel, { color: colors.text }]}>Status</Text>
-            <View style={styles.statusPickerRow}>
-              {ANNOUNCEMENT_STATUSES.map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  style={[
-                    styles.statusChip,
-                    editStatus === status && { backgroundColor: colors.primary },
-                    editStatus !== status && { borderColor: colors.border, borderWidth: 1 },
-                  ]}
-                  onPress={() => setEditStatus(status)}
-                >
-                  <Text style={[styles.statusChipText, editStatus === status && { color: "#fff" }, editStatus !== status && { color: colors.text }]}>
-                    {status}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {item.isUnread && <View style={styles.unreadDot} />}
             </View>
-          </ScrollView>
-        </View>
-      </Modal>
-    </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="person-outline" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>{item.sender}</Text>
+              {item.created_at ? (
+                <>
+                  <View style={styles.metaDot} />
+                  <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                  <Text style={styles.metaText}>{formatDate(item.created_at)}</Text>
+                </>
+              ) : null}
+            </View>
+          </View>
+          {item.body ? (
+            <View style={styles.divider} />
+          ) : null}
+          {item.body ? (
+            <Text style={styles.body} numberOfLines={4}>
+              {item.body}
+            </Text>
+          ) : null}
+        </Card>
+      )}
+    />
   );
 }
 
@@ -394,9 +162,11 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -405,6 +175,8 @@ const styles = StyleSheet.create({
   },
   unreadCard: {
     borderLeftWidth: 4,
+    borderLeftColor: "#1E0977",
+    backgroundColor: "#F9FAFB",
   },
   header: {
     gap: 6,
@@ -418,38 +190,39 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: "700",
+    color: "#111827",
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  editBtn: {
-    fontSize: 13,
-    fontWeight: "600",
+    backgroundColor: "#1E0977",
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    flexWrap: "wrap",
   },
   metaText: {
     fontSize: 12,
+    color: "#6B7280",
     fontWeight: "500",
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 2,
+    backgroundColor: "#D1D5DB",
   },
   divider: {
     height: 1,
+    backgroundColor: "#F3F4F6",
     marginVertical: 10,
   },
   body: {
     fontSize: 14,
     lineHeight: 20,
+    color: "#374151",
   },
   center: {
     alignItems: "center",
@@ -459,100 +232,16 @@ const styles = StyleSheet.create({
   },
   centerText: {
     fontSize: 14,
+    color: "#6B7280",
   },
   errorText: {
     fontSize: 14,
+    color: "#EF4444",
     textAlign: "center",
   },
   emptyText: {
     fontSize: 14,
+    color: "#9CA3AF",
     marginTop: 8,
-  },
-  filterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-    flexWrap: "wrap",
-  },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  clearFilterText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: "auto",
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  modalScreen: {
-    flex: 1,
-  },
-  modalHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  backBtn: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  saveBtn: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  modalBody: {
-    padding: 20,
-    gap: 16,
-  },
-  modalLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 14,
-  },
-  modalTextArea: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    fontSize: 14,
-    height: 160,
-  },
-  statusPickerRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  statusChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statusChipText: {
-    fontSize: 12,
-    fontWeight: "600",
   },
 });

@@ -1,5 +1,4 @@
 import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "@/context/ThemeContext";
 
 export type Status = "ongoing" | "cancelled" | "completed" | "pending_signature";
 
@@ -15,8 +14,7 @@ const STATUS_CONFIG: Record<Status, { color: string; label: string }> = {
 };
 
 export default function StatusBadge({ status }: Props) {
-  const { colors } = useTheme();
-  const config = STATUS_CONFIG[status] ?? { color: colors.textMuted, label: status };
+  const config = STATUS_CONFIG[status] ?? { color: "#9CA3AF", label: status };
 
   return (
     <View style={styles.row}>

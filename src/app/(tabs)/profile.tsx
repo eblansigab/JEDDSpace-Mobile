@@ -1,4 +1,5 @@
 import { clearSupabaseSession, supabase } from "@/lib/supabase";
+import { useTheme } from "@/context/ThemeContext";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -6,7 +7,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { getNotificationsEnabled, setNotificationsEnabled } from "@/services/notificationService";
-import { useTheme } from "@/context/ThemeContext";
 
 interface EmployeeProfile {
   employee_id: string;
@@ -17,14 +17,15 @@ interface EmployeeProfile {
   position: string | null;
   role: string | null;
   avatar_url: string | null;
-  username: string | null;
 }
 
-function SectionCard({ children, colors }: { children: React.ReactNode; colors: ReturnType<typeof useTheme>["colors"] }) {
-  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>{children}</View>;
+function SectionCard({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  return <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.text }]}>{children}</View>;
 }
 
-function SectionTitle({ label, colors }: { label: string; colors: ReturnType<typeof useTheme>["colors"] }) {
+function SectionTitle({ label }: { label: string }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.sectionTitleRow}>
       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{label}</Text>
@@ -33,7 +34,8 @@ function SectionTitle({ label, colors }: { label: string; colors: ReturnType<typ
   );
 }
 
-function InfoRow({ label, value, colors }: { label: string; value?: string | null; colors: ReturnType<typeof useTheme>["colors"] }) {
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
       <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{label}</Text>
@@ -71,7 +73,7 @@ export default function Profile() {
 
         const { data, error } = await supabase
           .from("employee")
-          .select("employee_id, first_name, last_name, email, department, position, role, avatar_url, username")
+          .select("employee_id, first_name, last_name, email, department, position, role, avatar_url")
           .eq("user_id", session.user.id)
           .maybeSingle();
 
@@ -233,6 +235,7 @@ export default function Profile() {
             Alert.alert("Logout Error", message);
           } finally {
             setLoading(false);
+            router.replace("/login");
           }
         },
       },
@@ -247,15 +250,15 @@ export default function Profile() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1E0977" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading profile...</Text>
           </View>
         ) : (
           <>
             <View style={styles.hero}>
               <View style={styles.avatarContainer}>
-                {profile?.avatar_url ? <Image style={styles.avatarImage} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>}
-                {avatarLoading ? <View style={styles.avatarOverlay}><ActivityIndicator color="#fff" /></View> : null}
+                {profile?.avatar_url ? <Image style={styles.avatarImage} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <View style={[styles.avatar, { backgroundColor: colors.primary }]}><Text style={styles.avatarText}>{initials}</Text></View>}
+                {avatarLoading ? <View style={[styles.avatarOverlay, { backgroundColor: colors.overlay }]}><ActivityIndicator color="#fff" /></View> : null}
               </View>
               <Text style={[styles.heroName, { color: colors.text }]}>{fullName}</Text>
               <View style={[styles.rolePill, { backgroundColor: colors.primaryLight }]}>
@@ -263,54 +266,51 @@ export default function Profile() {
               </View>
             </View>
 
-            <SectionCard colors={colors}>
-              <SectionTitle label="Contact Information" colors={colors} />
-              <InfoRow label="Username" value={profile?.username} colors={colors} />
-              <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-                Usernames are managed by the administrator.
-              </Text>
-              <InfoRow label="Department" value={profile?.department} colors={colors} />
-              <InfoRow label="Position" value={profile?.position} colors={colors} />
+            <SectionCard>
+              <SectionTitle label="Contact Information" />
+              <InfoRow label="Email" value={profile?.email} />
+              <InfoRow label="Department" value={profile?.department} />
+              <InfoRow label="Position" value={profile?.position} />
             </SectionCard>
 
-            <SectionCard colors={colors}>
-              <SectionTitle label="Profile Picture" colors={colors} />
+            <SectionCard>
+              <SectionTitle label="Profile Picture" />
               <View style={styles.pictureRow}>
                 <View style={[styles.picturePlaceholder, { backgroundColor: colors.primaryLight }]}>
                   {profile?.avatar_url ? <Image style={styles.pictureThumbnail} source={{ uri: profile.avatar_url }} contentFit="cover" /> : <Text style={[styles.pictureInitials, { color: colors.primary }]}>{initials}</Text>}
                 </View>
                 <View style={styles.pictureInfo}>
-                  <Text style={[styles.pictureHint, { color: colors.textSecondary }]}>PNG, JPG, JPEG, or WEBP. Max 2 MB.</Text>
+                  <Text style={[styles.pictureHint, { color: colors.textMuted }]}>PNG, JPG, JPEG, or WEBP. Max 2 MB.</Text>
                   <TouchableOpacity style={[styles.outlineBtn, { borderColor: colors.primary }]} activeOpacity={0.7} onPress={handleChangeAvatar} disabled={avatarLoading}>
                     <Text style={[styles.outlineBtnText, { color: colors.primary }]}>{avatarLoading ? "Uploading..." : "Change Picture"}</Text>
                   </TouchableOpacity>
                   {profile?.avatar_url ? (
                     <TouchableOpacity onPress={handleRemoveAvatar} disabled={avatarLoading}>
-                      <Text style={styles.removeText}>Remove Picture</Text>
+                      <Text style={[styles.removeText, { color: colors.danger }]}>Remove Picture</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
               </View>
             </SectionCard>
 
-            <SectionCard colors={colors}>
-              <SectionTitle label="Change Password" colors={colors} />
+            <SectionCard>
+              <SectionTitle label="Change Password" />
               <Text style={[styles.fieldLabel, { color: colors.text }]}>New Password</Text>
               <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface }]}
                 placeholder="Enter new password (min 6 chars)"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={newPassword}
                 onChangeText={setNewPassword}
               />
-              <TouchableOpacity style={[styles.primaryBtn, changingPassword && styles.primaryBtnDisabled]} onPress={handleChangePassword} disabled={changingPassword} activeOpacity={0.8}>
+              <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: colors.primary }, changingPassword && styles.primaryBtnDisabled]} onPress={handleChangePassword} disabled={changingPassword} activeOpacity={0.8}>
                 {changingPassword ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryBtnText}>Update Password</Text>}
               </TouchableOpacity>
             </SectionCard>
 
-            <SectionCard colors={colors}>
-              <SectionTitle label="Notifications" colors={colors} />
+            <SectionCard>
+              <SectionTitle label="Notifications" />
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { color: colors.text }]}>Push Notifications</Text>
@@ -320,12 +320,12 @@ export default function Profile() {
                   value={notificationsEnabled}
                   onValueChange={handleToggleNotifications}
                   trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={notificationsEnabled ? "#fff" : colors.textMuted}
+                  thumbColor={notificationsEnabled ? colors.surface : colors.textMuted}
                 />
               </View>
             </SectionCard>
 
-            <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: colors.surface }]} onPress={handleLogout} activeOpacity={0.8}>
+            <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: colors.background }]} onPress={handleLogout} activeOpacity={0.8}>
               <Ionicons name="log-out-outline" color={colors.danger} size={18} />
               <Text style={[styles.logoutText, { color: colors.danger }]}>Log Out</Text>
             </TouchableOpacity>
@@ -343,31 +343,30 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 14 },
   hero: { alignItems: "center", paddingVertical: 24, gap: 8 },
   avatarContainer: { position: "relative", marginBottom: 4 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#1E0977", justifyContent: "center", alignItems: "center" },
+  avatar: { width: 80, height: 80, borderRadius: 40, justifyContent: "center", alignItems: "center" },
   avatarImage: { width: 80, height: 80, borderRadius: 40 },
-  avatarOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 40, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
+  avatarOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 40, justifyContent: "center", alignItems: "center" },
   avatarText: { color: "#fff", fontSize: 28, fontWeight: "700" },
   heroName: { fontSize: 20, fontWeight: "700" },
   rolePill: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   rolePillText: { fontSize: 12, fontWeight: "600" },
-  card: { borderRadius: 8, padding: 16, gap: 10, borderWidth: 1, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  card: { borderRadius: 8, padding: 16, gap: 10, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 2 },
   sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
   sectionLine: { flex: 1, height: 1 },
   infoRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderBottomWidth: 1 },
   infoLabel: { fontSize: 13, fontWeight: "500" },
   infoValue: { fontSize: 13, fontWeight: "500", flexShrink: 1, textAlign: "right", marginLeft: 12 },
-  helperText: { fontSize: 12, marginTop: -4, paddingHorizontal: 4 },
   pictureRow: { flexDirection: "row", alignItems: "center", gap: 16 },
   picturePlaceholder: { width: 72, height: 72, borderRadius: 36, justifyContent: "center", alignItems: "center", overflow: "hidden" },
   pictureThumbnail: { width: 72, height: 72 },
   pictureInitials: { fontSize: 22, fontWeight: "700" },
   pictureInfo: { flex: 1, gap: 8 },
   pictureHint: { fontSize: 12 },
-  removeText: { fontSize: 12, color: "#EF4444", fontWeight: "600" },
+  removeText: { fontSize: 12, fontWeight: "600" },
   fieldLabel: { fontSize: 13, fontWeight: "600", marginBottom: -4 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 11, fontSize: 14 },
-  primaryBtn: { backgroundColor: "#1E0977", borderRadius: 8, paddingVertical: 12, alignItems: "center", marginTop: 4 },
+  primaryBtn: { borderRadius: 8, paddingVertical: 12, alignItems: "center", marginTop: 4 },
   primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   outlineBtn: { borderWidth: 1.5, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start" },

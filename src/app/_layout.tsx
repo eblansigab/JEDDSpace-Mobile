@@ -1,21 +1,48 @@
 import { Image } from "expo-image";
 import { Stack, usePathname, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { ThemeProvider } from "@/context/ThemeContext";
 import * as SplashScreen from "expo-splash-screen";
-import { AuthProvider, useAuth } from "@/lib/AuthContext";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import type { Session } from "@supabase/supabase-js";
 
-function RootLayoutNav() {
-  const { session, authReady } = useAuth();
+export default function RootLayout() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { colors } = useTheme();
 
   useEffect(() => {
-    if (authReady) {
-      void SplashScreen.hideAsync();
-    }
-  }, [authReady]);
+    let mounted = true;
+
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setSession(session);
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        if (mounted) {
+          setAuthReady(true);
+          void SplashScreen.hideAsync();
+        }
+      }
+    })();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (mounted) {
+        setSession(nextSession);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!authReady) return;
@@ -30,46 +57,38 @@ function RootLayoutNav() {
   }, [authReady, session, pathname, router]);
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerShadowVisible: false,
-        headerTintColor: "#fff",
-      }}
-    >
-      <Stack.Screen
-        name="login"
-        options={{
-          headerTitle: () => (
-            <Image
-              style={{ width: "50%", height: "auto" }}
-              source={require("../components/jeddspace_logo.png")}
-            />
-          ),
+    <ThemeProvider>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: "#1E0977" },
+          headerShadowVisible: false,
+          headerTintColor: "#fff",
         }}
-      />
-      <Stack.Screen
-        name="sign-in"
-        options={{
-          headerTitle: () => (
-            <Image
-              style={{ width: "50%", height: "auto" }}
-              source={require("../components/jeddspace_logo.png")}
-            />
-          ),
-        }}
-      />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
-  );
-}
-
-export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <ThemeProvider>
-        <RootLayoutNav />
-      </ThemeProvider>
-    </AuthProvider>
+      >
+        <Stack.Screen
+          name="login"
+          options={{
+            headerTitle: () => (
+              <Image
+                style={{ width: "50%", height: "auto" }}
+                source={require("../components/jeddspace_logo.png")}
+              />
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            headerTitle: () => (
+              <Image
+                style={{ width: "50%", height: "auto" }}
+                source={require("../components/jeddspace_logo.png")}
+              />
+            ),
+          }}
+        />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </ThemeProvider>
   );
 }

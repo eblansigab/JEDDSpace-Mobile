@@ -212,7 +212,7 @@ export default function Index() {
           title="Messages"
           subtitle="Review your internal messages"
           actionLabel="View"
-          onPress={() => router.push("/email")}
+          onPress={() => router.push("/(tabs)/email")}
           accent="#1E0977"
         />
 
@@ -229,7 +229,7 @@ export default function Index() {
           title="Announcements"
           subtitle="View the latest from your company"
           actionLabel="View"
-          onPress={() => router.push("/announcements")}
+          onPress={() => router.push("/(tabs)/announcements")}
           accent="#D97706"
         />
 
@@ -238,7 +238,7 @@ export default function Index() {
           title="AI Assistant"
           subtitle="Ask about jobs, employees, contracts, and documents"
           actionLabel="Chat"
-          onPress={() => router.push("/ai-assistant")}
+          onPress={() => router.push("/(tabs)/ai-assistant")}
           accent="#0C21C1"
         />
 

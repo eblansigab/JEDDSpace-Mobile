@@ -18,27 +18,28 @@ type ReactionBarProps = {
   reactions: ReactionState;
   counts?: ReactionCounts;
   onToggle: (reaction: ReactionKey) => Promise<ReactionResult> | void;
-  loading?: boolean;
+  loadingReaction?: ReactionKey | null;
 };
 
-export default function ReactionBar({ reactions, counts = {}, onToggle, loading = false }: ReactionBarProps) {
+export default function ReactionBar({ reactions, counts = {}, onToggle, loadingReaction = null }: ReactionBarProps) {
   return (
     <View style={styles.row}>
       {REACTION_OPTIONS.map((reaction) => {
         const active = Boolean(reactions[reaction]);
         const count = counts[reaction];
+        const isThisLoading = loadingReaction === reaction;
         return (
           <TouchableOpacity
             key={reaction}
             onPress={() => onToggle(reaction)}
             activeOpacity={0.7}
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            disabled={loading}
+            disabled={isThisLoading}
           >
-            <View style={[styles.chip, active && styles.chipActive, loading && styles.chipDisabled]}>
+            <View style={[styles.chip, active && styles.chipActive, isThisLoading && styles.chipDisabled]}>
               <Text style={styles.emoji}>{reaction}</Text>
               {typeof count === "number" && count > 0 && <Text style={styles.count}>{count}</Text>}
-              {loading && <ActivityIndicator size="small" color="#1E0977" style={styles.loader} />}
+              {isThisLoading && <ActivityIndicator size="small" color="#1E0977" style={styles.loader} />}
             </View>
           </TouchableOpacity>
         );

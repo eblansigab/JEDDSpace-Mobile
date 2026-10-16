@@ -51,6 +51,30 @@ function getInitials(name: string) {
 
 const AVATAR_COLORS = ["#4F46E5", "#0891B2", "#059669", "#D97706", "#DC2626"];
 
+async function getEmailCounts(employeeId: number, email: string) {
+  const [inboxResult, sentResult] = await Promise.all([
+    supabase
+      .from("email")
+      .select("email_id", { count: "exact", head: true })
+      .eq("recipient_email", email)
+      .eq("is_read", false)
+      .eq("deleted_by_recipient", false),
+    supabase
+      .from("email")
+      .select("email_id", { count: "exact", head: true })
+      .eq("sender_id", employeeId)
+      .eq("deleted_by_sender", false),
+  ]);
+
+  if (inboxResult.error) throw inboxResult.error;
+  if (sentResult.error) throw sentResult.error;
+
+  return {
+    inboxUnreadCount: inboxResult.count ?? 0,
+    sentCount: sentResult.count ?? 0,
+  };
+}
+
 export default function Emails() {
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<Tab>("inbox");
@@ -76,7 +100,9 @@ export default function Emails() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [reactions, setReactions] = useState<Record<number, ReactionState>>({});
   const [reactionCounts, setReactionCounts] = useState<Record<number, ReactionCounts>>({});
-  const [reactionLoading, setReactionLoading] = useState(false);
+  const [reactionLoading, setReactionLoading] = useState<Record<number, ReactionKey | null>>({});
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+  const [sentCount, setSentCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -169,6 +195,25 @@ export default function Emails() {
   }, [activeTab, myEmployeeId, myEmail]);
 
   useEffect(() => {
+    let isMounted = true;
+    if (!myEmployeeId || !myEmail) return;
+
+    void getEmailCounts(myEmployeeId, myEmail)
+      .then((counts) => {
+        if (!isMounted) return;
+        setInboxUnreadCount(counts.inboxUnreadCount);
+        setSentCount(counts.sentCount);
+      })
+      .catch((err) => {
+        console.error("[MobileAI] Email count load error:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [myEmployeeId, myEmail]);
+
+  useEffect(() => {
     if (!myEmail) return;
 
     const channel = supabase
@@ -191,6 +236,14 @@ export default function Emails() {
             }
             return next;
           });
+          if (myEmployeeId) {
+            void getEmailCounts(myEmployeeId, myEmail).then((counts) => {
+              setInboxUnreadCount(counts.inboxUnreadCount);
+              setSentCount(counts.sentCount);
+            }).catch((err) => {
+              console.error("[MobileAI] Email count refresh error:", err);
+            });
+          }
           Alert.alert('New Message', `You received a new message: ${newEmail.subject}`);
         }
       )
@@ -211,15 +264,17 @@ export default function Emails() {
     return matchesSearch;
   });
 
-  const inboxUnreadCount = emails.filter((e) => !e.is_read).length;
-  const sentCount = emails.filter((e) => e.sender_id === myEmployeeId && !e.deleted_by_sender).length;
-
   const markAsRead = async (emailId: number) => {
     try {
       await supabase.from("email").update({ is_read: true }).eq("email_id", emailId);
       setEmails((prev) =>
         prev.map((e) => (e.email_id === emailId ? { ...e, is_read: true } : e))
       );
+      if (myEmployeeId && myEmail) {
+        const counts = await getEmailCounts(myEmployeeId, myEmail);
+        setInboxUnreadCount(counts.inboxUnreadCount);
+        setSentCount(counts.sentCount);
+      }
     } catch (err) {
       console.error("[MobileAI] Mark as read error:", err);
     }
@@ -244,14 +299,14 @@ export default function Emails() {
   };
 
   const toggleReaction = async (emailId: number, reaction: ReactionKey): Promise<ReactionResult> => {
-    setReactionLoading(true);
+    setReactionLoading((prev) => ({ ...prev, [emailId]: reaction }));
     try {
       const result = await toggleMessageReaction(emailId, reaction);
       setReactions((prev) => ({ ...prev, [emailId]: result.mine }));
       setReactionCounts((prev) => ({ ...prev, [emailId]: result.counts }));
       return result;
     } finally {
-      setReactionLoading(false);
+      setReactionLoading((prev) => ({ ...prev, [emailId]: null }));
     }
   };
 
@@ -377,6 +432,11 @@ export default function Emails() {
       Alert.alert("Success", "Message sent successfully.");
       resetCompose();
       await loadEmails();
+      if (myEmployeeId && myEmail) {
+        const counts = await getEmailCounts(myEmployeeId, myEmail);
+        setInboxUnreadCount(counts.inboxUnreadCount);
+        setSentCount(counts.sentCount);
+      }
     } catch (err) {
       console.error("[MobileAI] Send message error:", err);
       const message = err instanceof Error ? err.message : String(err);
@@ -431,15 +491,15 @@ export default function Emails() {
         </View>
         <View style={styles.emailContent}>
           <View style={styles.emailTopRow}>
-            <Text style={[styles.senderName, !item.is_read && styles.bold]} numberOfLines={1}>
+            <Text style={[styles.senderName, { color: colors.text }, !item.is_read && styles.bold]} numberOfLines={1}>
               {senderName}
             </Text>
-            <Text style={styles.dateText}>{dateStr}</Text>
+            <Text style={[styles.dateText, { color: colors.textMuted }]}>{dateStr}</Text>
           </View>
-          <Text style={[styles.subjectText, !item.is_read && styles.subjectBold]} numberOfLines={1}>
+          <Text style={[styles.subjectText, { color: colors.text }, !item.is_read && styles.subjectBold]} numberOfLines={1}>
             {item.subject}
           </Text>
-          <Text style={styles.previewText} numberOfLines={1}>
+          <Text style={[styles.previewText, { color: colors.textSecondary }]} numberOfLines={1}>
             {item.message_body}
           </Text>
         </View>
@@ -485,7 +545,7 @@ export default function Emails() {
         {TABS.map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}
+            style={[styles.tabItem, activeTab === tab.key && { backgroundColor: colors.primaryLight }, { borderBottomColor: colors.border, backgroundColor: activeTab === tab.key ? colors.primaryLight : colors.surface }]}
             onPress={() => setActiveTab(tab.key)}
             activeOpacity={0.7}
           >
@@ -515,7 +575,7 @@ export default function Emails() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>✉️</Text>
-            <Text style={styles.emptyText}>No messages here.</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No messages here.</Text>
           </View>
         }
         ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
@@ -564,7 +624,7 @@ export default function Emails() {
                   <Text style={[styles.attachmentLinkText, { color: colors.primary }]}>View Attachment</Text>
                 </TouchableOpacity>
               ) : null}
-              <ReactionBar reactions={reactions[selectedEmail.email_id] || {}} counts={reactionCounts[selectedEmail.email_id] || {}} onToggle={(reaction) => toggleReaction(selectedEmail.email_id, reaction)} loading={reactionLoading} />
+              <ReactionBar reactions={reactions[selectedEmail.email_id] || {}} counts={reactionCounts[selectedEmail.email_id] || {}} onToggle={(reaction) => toggleReaction(selectedEmail.email_id, reaction)} loadingReaction={reactionLoading[selectedEmail.email_id] ?? null} />
             </ScrollView>
           )}
         </View>
@@ -576,7 +636,7 @@ export default function Emails() {
           style={styles.composeOverlay}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <Pressable style={styles.composeBackdrop} onPress={resetCompose} />
+          <Pressable style={[styles.composeBackdrop, { backgroundColor: colors.overlay }]} onPress={resetCompose} />
           <View style={[styles.composeSheet, { backgroundColor: colors.surface }]}>
             <View style={[styles.composeHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.composeTitle, { color: colors.text }]}>{subject.startsWith("Re:") ? "Reply" : "New Internal Message"}</Text>
@@ -618,11 +678,11 @@ export default function Emails() {
                   <ScrollView style={styles.recipientList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
                     {employeeLoading ? (
                       <View style={styles.recipientLoading}>
-                        <Text style={styles.recipientLoadingText}>Loading employees...</Text>
+                        <Text style={[styles.recipientLoadingText, { color: colors.textSecondary }]}>Loading employees...</Text>
                       </View>
                     ) : filteredEmployees.length === 0 ? (
                       <View style={styles.recipientEmpty}>
-                        <Text style={styles.recipientEmptyText}>No employees found.</Text>
+                        <Text style={[styles.recipientEmptyText, { color: colors.textSecondary }]}>No employees found.</Text>
                       </View>
                     ) : (
                       filteredEmployees.map((emp) => {
@@ -705,7 +765,7 @@ export default function Emails() {
                   <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
+                  style={[styles.sendBtn, { backgroundColor: colors.primary }, sending && styles.sendBtnDisabled]}
                   onPress={handleSend}
                   disabled={sending}
                   activeOpacity={0.8}
@@ -737,10 +797,10 @@ const styles = StyleSheet.create({
   clearIcon: { fontSize: 12, fontWeight: "600" },
   tabSidebar: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
   tabItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 10, borderBottomWidth: 1 },
-  tabItemActive: { backgroundColor: "#EEF2FF" },
+  tabItemActive: {},
   tabIcon: { fontSize: 16, width: 22, textAlign: "center" },
   tabLabel: { flex: 1, fontSize: 14, fontWeight: "500" },
-  tabLabelActive: { color: "#1E0977", fontWeight: "700" },
+  tabLabelActive: { fontWeight: "700" },
   badgeFilled: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, minWidth: 24, alignItems: "center" },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   emptyContainer: { flex: 1 },
@@ -773,7 +833,7 @@ const styles = StyleSheet.create({
   detailDivider: { height: 1 },
   detailBody: { fontSize: 15, lineHeight: 24 },
   composeOverlay: { flex: 1, justifyContent: "flex-end" },
-  composeBackdrop: { ...(StyleSheet.absoluteFill as any), backgroundColor: "rgba(0,0,0,0.4)" },
+  composeBackdrop: { ...(StyleSheet.absoluteFill as any) },
   composeSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "90%", shadowColor: "#000", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 16 },
   composeHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottomWidth: 1 },
   composeTitle: { fontSize: 16, fontWeight: "700" },
@@ -801,7 +861,7 @@ const styles = StyleSheet.create({
   composeActions: { flexDirection: "row", gap: 10, marginTop: 4 },
   cancelBtn: { flex: 1, borderWidth: 1.5, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
   cancelBtnText: { fontSize: 14, fontWeight: "600" },
-  sendBtn: { flex: 1, backgroundColor: "#1E0977", borderRadius: 8, paddingVertical: 12, alignItems: "center" },
+  sendBtn: { flex: 1, borderRadius: 8, paddingVertical: 12, alignItems: "center" },
   sendBtnDisabled: { opacity: 0.6 },
   sendBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
   attachmentList: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

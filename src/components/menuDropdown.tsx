@@ -12,16 +12,16 @@ type NavItem =
   | { kind: "section"; label: string };
 
 const ALL_NAV_ITEMS: NavItem[] = [
-  { kind: "link", label: "Dashboard", icon: "grid-outline", value: "/" },
-  { kind: "link", label: "Documents", icon: "document-text-outline", value: "/documents" },
-  { kind: "link", label: "Messages", icon: "mail-outline", value: "/email" },
-  { kind: "link", label: "Contracts", icon: "briefcase-outline", value: "/contracts" },
-  { kind: "link", label: "Announcements", icon: "megaphone-outline", value: "/announcements" },
+  { kind: "link", label: "Dashboard", icon: "grid-outline", value: "/(tabs)" },
+  { kind: "link", label: "Documents", icon: "document-text-outline", value: "/(tabs)/documents" },
+  { kind: "link", label: "Messages", icon: "mail-outline", value: "/(tabs)/email" },
+  { kind: "link", label: "Contracts", icon: "briefcase-outline", value: "/(tabs)/contracts" },
+  { kind: "link", label: "Announcements", icon: "megaphone-outline", value: "/(tabs)/announcements" },
   { kind: "section", label: "HR Forms" },
-  { kind: "link", label: "Business Form", icon: "reader-outline", value: "/business-form" },
-  { kind: "link", label: "Leave Form", icon: "calendar-outline", value: "/leave-form" },
+  { kind: "link", label: "Business Form", icon: "reader-outline", value: "/(tabs)/business-form" },
+  { kind: "link", label: "Leave Form", icon: "calendar-outline", value: "/(tabs)/leave-form" },
   { kind: "section", label: "AI Tools" },
-  { kind: "link", label: "AI Assistant", icon: "sparkles-outline", value: "/ai-assistant" },
+  { kind: "link", label: "AI Assistant", icon: "sparkles-outline", value: "/(tabs)/ai-assistant" },
 ];
 
 export default function MenuDropdown() {
