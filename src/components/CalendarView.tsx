@@ -55,6 +55,8 @@ export default function CalendarView({ events = [] }: CalendarViewProps) {
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   // Map events to days in the current month
   function getEventsForDay(day: number): CalendarEvent[] {
@@ -135,39 +137,43 @@ export default function CalendarView({ events = [] }: CalendarViewProps) {
         ))}
       </View>
 
-      <View style={styles.grid}>
-        {cells.map((day, idx) => {
-          if (day === null)
-            return <View key={`empty-${idx}`} style={styles.cell} />;
-          const dotColor = getDotColorForDay(day);
-          const isSelected = selectedDay === day;
-          const todayCell = isToday(day);
-          return (
-            <TouchableOpacity
-              key={day}
-              style={[
-                styles.cell,
-                isSelected && [styles.cellSelected, { backgroundColor: colors.primaryLight }],
-                todayCell && [styles.cellToday, { borderColor: colors.primary }],
-              ]}
-              onPress={() => setSelectedDay(isSelected ? null : day)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  [styles.dayNum, { color: colors.text }],
-                  isSelected && [styles.dayNumSelected, { color: colors.primary }],
-                  todayCell && [styles.dayNumToday, { color: colors.primary }],
-                ]}
-              >
-                {day}
-              </Text>
-              {dotColor && (
-                <View style={[styles.dot, { backgroundColor: dotColor }]} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
+      <View>
+        {weeks.map((week, wi) => (
+          <View key={`week-${wi}`} style={styles.gridRow}>
+            {week.map((day, di) => {
+              if (day === null)
+                return <View key={`empty-${wi}-${di}`} style={styles.cell} />;
+              const dotColor = getDotColorForDay(day);
+              const isSelected = selectedDay === day;
+              const todayCell = isToday(day);
+              return (
+                <TouchableOpacity
+                  key={day}
+                  style={[
+                    styles.cell,
+                    isSelected && [styles.cellSelected, { backgroundColor: colors.primaryLight }],
+                    todayCell && [styles.cellToday, { borderColor: colors.primary }],
+                  ]}
+                  onPress={() => setSelectedDay(isSelected ? null : day)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      [styles.dayNum, { color: colors.text }],
+                      isSelected && [styles.dayNumSelected, { color: colors.primary }],
+                      todayCell && [styles.dayNumToday, { color: colors.primary }],
+                    ]}
+                  >
+                    {day}
+                  </Text>
+                  {dotColor && (
+                    <View style={[styles.dot, styles.dotAbsolute, { backgroundColor: dotColor }]} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
       </View>
 
       {/* Selected day events */}
@@ -202,7 +208,7 @@ export default function CalendarView({ events = [] }: CalendarViewProps) {
           { color: "#D97706", label: "Announcement" },
           { color: "#059669", label: "Leave" },
           { color: "#0891B2", label: "Business" },
-          { color: "#1E0977", label: "Job" },
+          { color: "#6366F1", label: "Job" },
           { color: "#7C3AED", label: "Contract" },
         ].map(({ color, label }) => (
           <View key={label} style={styles.legendItem}>
@@ -251,17 +257,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
+  gridRow: { flexDirection: "row" },
   cell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
+    flex: 1,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 6,
-    gap: 2,
   },
   cellSelected: {
   },
@@ -282,6 +284,10 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
+  },
+  dotAbsolute: {
+    position: "absolute",
+    bottom: 4,
   },
   detail: {
     marginTop: 12,

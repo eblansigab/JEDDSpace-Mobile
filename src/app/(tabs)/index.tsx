@@ -150,7 +150,7 @@ export default function Index() {
             title: `💼 ${item.destination}`,
             start: item.start_date,
             end: item.end_date,
-            color: "#1E0977",
+            color: "#6366F1",
           })),
           ...(contracts || []).map((item) => ({
             title: `📄 ${item.contract_title}`,
@@ -186,7 +186,7 @@ export default function Index() {
       <MenuDropdown />
       <View style={[styles.banner, { backgroundColor: colors.primary }]}>
         <View>
-          <Text style={[styles.greeting, { color: colors.textMuted }]}>{getGreeting()}</Text>
+          <Text style={[styles.greeting, { color: "#fff" }]}>{getGreeting()}</Text>
           <Text style={[styles.greetingName, { color: "#fff" }]}>
             {greetingName ? `Welcome back, ${greetingName}.` : "Welcome back."}
           </Text>
@@ -213,7 +213,7 @@ export default function Index() {
           subtitle="Review your internal messages"
           actionLabel="View"
           onPress={() => router.push("/(tabs)/email")}
-          accent="#1E0977"
+          accent={colors.primary}
         />
 
         <DashboardCard
@@ -239,7 +239,7 @@ export default function Index() {
           subtitle="Ask about jobs, employees, contracts, and documents"
           actionLabel="Chat"
           onPress={() => router.push("/(tabs)/ai-assistant")}
-          accent="#0C21C1"
+          accent={colors.primary}
         />
 
         <View style={styles.dividerRow}>

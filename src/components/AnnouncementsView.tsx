@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Card from "@/components/card";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { useTheme } from "@/context/ThemeContext";
+import { getCurrentEmployeeId } from "@/lib/AuthContext";
 
 type Announcement = {
   announcement_id?: string;
@@ -10,12 +12,14 @@ type Announcement = {
   title: string;
   body?: string;
   description?: string;
+  status?: string;
   created_at?: string | null;
   sender?: string;
   isUnread?: boolean;
 };
 
 export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }) {
+  const { colors } = useTheme();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
         const { data, error: fetchError } = await supabase
           .from("announcement")
           .select("*")
+          .eq("status", "Published")
           .order("created_at", { ascending: false });
 
         if (fetchError) throw fetchError;
@@ -35,6 +40,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
           announcement_id: String(row.announcement_id || row.id || ""),
           title: String(row.title || "Untitled"),
           body: row.body ? String(row.body) : row.description ? String(row.description) : "",
+          status: String(row.status || "Published"),
           created_at: row.created_at ? String(row.created_at) : null,
           sender: row.sender ? String(row.sender) : row.created_by ? String(row.created_by) : "Company",
           isUnread: Boolean(row.is_unread ?? row.isUnread ?? false),
@@ -58,10 +64,43 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
     };
   }, []);
 
+  const markAnnouncementViewed = async (announcementId: string) => {
+    const employeeId = await getCurrentEmployeeId();
+    const numericAnnouncementId = Number(announcementId);
+    const numericEmployeeId = employeeId ? Number(employeeId) : NaN;
+
+    if (!Number.isInteger(numericAnnouncementId) || !Number.isInteger(numericEmployeeId)) {
+      return;
+    }
+
+    const { data: existing, error: lookupError } = await supabase
+      .from("announcement_views")
+      .select("announcement_view_id")
+      .eq("announcement_id", numericAnnouncementId)
+      .eq("employee_id", numericEmployeeId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("[MobileAI] Announcement view lookup error:", lookupError);
+      return;
+    }
+
+    if (existing) return;
+
+    const { error: insertError } = await supabase.from("announcement_views").insert({
+      announcement_id: numericAnnouncementId,
+      employee_id: numericEmployeeId,
+    });
+
+    if (insertError) {
+      console.error("[MobileAI] Announcement view insert error:", insertError);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={styles.centerText}>Loading announcements...</Text>
+        <Text style={[styles.centerText, { color: colors.textSecondary }]}>Loading announcements...</Text>
       </View>
     );
   }
@@ -69,7 +108,7 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
       </View>
     );
   }
@@ -77,8 +116,8 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (announcements.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="megaphone-outline" size={40} color="#9CA3AF" />
-        <Text style={styles.emptyText}>No announcements yet.</Text>
+        <Ionicons name="megaphone-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No announcements yet.</Text>
       </View>
     );
   }
@@ -95,8 +134,8 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   if (filtered.length === 0) {
     return (
       <View style={styles.center}>
-        <Ionicons name="search-outline" size={40} color="#9CA3AF" />
-        <Text style={styles.emptyText}>No matching announcements.</Text>
+        <Ionicons name="search-outline" size={40} color={colors.textMuted} />
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>No matching announcements.</Text>
       </View>
     );
   }
@@ -108,35 +147,39 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
       renderItem={({ item }) => (
-        <Card style={[styles.card, item.isUnread && styles.unreadCard]}>
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={2}>
-                {item.title}
+        <TouchableOpacity onPress={() => void markAnnouncementViewed(item.announcement_id || item.id || "")} activeOpacity={0.7}>
+          <Card style={[styles.card, item.isUnread && styles.unreadCard]}>
+            <View style={styles.header}>
+              <View style={styles.titleRow}>
+                <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                {item.isUnread && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+              </View>
+              <View style={styles.metaRow}>
+                <Ionicons name="person-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.sender}</Text>
+                {item.created_at ? (
+                  <>
+                    <View style={[styles.metaDot, { backgroundColor: colors.border }]} />
+                    <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
+                  </>
+                ) : null}
+                <View style={[styles.statusBadge, { backgroundColor: item.status === "Published" ? `${colors.success}20` : colors.background }]}>
+                  <View style={[styles.statusDot, { backgroundColor: item.status === "Published" ? colors.success : colors.textMuted }]} />
+                  <Text style={[styles.statusText, { color: item.status === "Published" ? colors.success : colors.textMuted }]}>{item.status}</Text>
+                </View>
+              </View>
+            </View>
+            {item.body ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
+            {item.body ? (
+              <Text style={[styles.body, { color: colors.textSecondary }]} numberOfLines={4}>
+                {item.body}
               </Text>
-              {item.isUnread && <View style={styles.unreadDot} />}
-            </View>
-            <View style={styles.metaRow}>
-              <Ionicons name="person-outline" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>{item.sender}</Text>
-              {item.created_at ? (
-                <>
-                  <View style={styles.metaDot} />
-                  <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                  <Text style={styles.metaText}>{formatDate(item.created_at)}</Text>
-                </>
-              ) : null}
-            </View>
-          </View>
-          {item.body ? (
-            <View style={styles.divider} />
-          ) : null}
-          {item.body ? (
-            <Text style={styles.body} numberOfLines={4}>
-              {item.body}
-            </Text>
-          ) : null}
-        </Card>
+            ) : null}
+          </Card>
+        </TouchableOpacity>
       )}
     />
   );
@@ -162,11 +205,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -175,8 +216,6 @@ const styles = StyleSheet.create({
   },
   unreadCard: {
     borderLeftWidth: 4,
-    borderLeftColor: "#1E0977",
-    backgroundColor: "#F9FAFB",
   },
   header: {
     gap: 6,
@@ -196,7 +235,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#1E0977",
   },
   metaRow: {
     flexDirection: "row",
@@ -205,24 +243,38 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: "#6B7280",
     fontWeight: "500",
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#D1D5DB",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: "auto",
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
     marginVertical: 10,
   },
   body: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#374151",
   },
   center: {
     alignItems: "center",
@@ -232,16 +284,13 @@ const styles = StyleSheet.create({
   },
   centerText: {
     fontSize: 14,
-    color: "#6B7280",
   },
   errorText: {
     fontSize: 14,
-    color: "#EF4444",
     textAlign: "center",
   },
   emptyText: {
     fontSize: 14,
-    color: "#9CA3AF",
     marginTop: 8,
   },
 });
