@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
-import ReactionBar from "@/components/ReactionBar";
+import ReactionBar, { REACTION_OPTIONS } from "@/components/ReactionBar";
 import { getMessageReactions, getMessageReactionCounts, toggleMessageReaction, ReactionKey, ReactionState, ReactionCounts, ReactionResult } from "@/services/reactionService";
 
 type EmailRow = {
@@ -624,7 +624,7 @@ export default function Emails() {
                   <Text style={[styles.attachmentLinkText, { color: colors.primary }]}>View Attachment</Text>
                 </TouchableOpacity>
               ) : null}
-              <ReactionBar reactions={reactions[selectedEmail.email_id] || {}} counts={reactionCounts[selectedEmail.email_id] || {}} onToggle={(reaction) => toggleReaction(selectedEmail.email_id, reaction)} loadingReaction={reactionLoading[selectedEmail.email_id] ?? null} />
+              <ReactionBar options={REACTION_OPTIONS} reactions={reactions[selectedEmail.email_id] || {}} counts={reactionCounts[selectedEmail.email_id] || {}} onToggle={(reaction) => toggleReaction(selectedEmail.email_id, reaction)} loadingReaction={reactionLoading[selectedEmail.email_id] ?? null} />
             </ScrollView>
           )}
         </View>

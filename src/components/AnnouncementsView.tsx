@@ -5,6 +5,16 @@ import Card from "@/components/card";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { useTheme } from "@/context/ThemeContext";
 import { getCurrentEmployeeId } from "@/lib/AuthContext";
+import ReactionBar, { ReactionCounts, ReactionOption, ReactionResult, ReactionState } from "@/components/ReactionBar";
+import { getAnnouncementReactionData, toggleAnnouncementReaction } from "@/services/reactionService";
+
+export const ANNOUNCEMENT_REACTION_OPTIONS: ReactionOption[] = [
+  { key: "acknowledged", emoji: "👍", label: "Acknowledged" },
+  { key: "appreciated", emoji: "❤️", label: "Appreciated" },
+  { key: "important", emoji: "⭐", label: "Important" },
+  { key: "confirmed", emoji: "✅", label: "Confirmed" },
+  { key: "question", emoji: "❓", label: "Question" },
+];
 
 type Announcement = {
   announcement_id?: string;
@@ -13,6 +23,8 @@ type Announcement = {
   body?: string;
   description?: string;
   status?: string;
+  visibility_scope?: string | null;
+  visibility_target?: string | null;
   created_at?: string | null;
   sender?: string;
   isUnread?: boolean;
@@ -23,6 +35,9 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Record<string, ReactionState>>({});
+  const [reactionCounts, setReactionCounts] = useState<Record<string, ReactionCounts>>({});
+  const [reactionLoading, setReactionLoading] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -41,13 +56,19 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
           title: String(row.title || "Untitled"),
           body: row.body ? String(row.body) : row.description ? String(row.description) : "",
           status: String(row.status || "Published"),
+          visibility_scope: row.visibility_scope ? String(row.visibility_scope) : null,
+          visibility_target: row.visibility_target ? String(row.visibility_target) : null,
           created_at: row.created_at ? String(row.created_at) : null,
           sender: row.sender ? String(row.sender) : row.created_by ? String(row.created_by) : "Company",
           isUnread: Boolean(row.is_unread ?? row.isUnread ?? false),
         }));
 
+        const reactionData = await getAnnouncementReactionData(mapped.map((item) => item.announcement_id || item.id || ""));
+
         if (isMounted) {
           setAnnouncements(mapped);
+          setReactions(reactionData.mine);
+          setReactionCounts(reactionData.counts);
           setError(null);
         }
       } catch (err) {
@@ -97,6 +118,18 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
     }
   };
 
+  const toggleReaction = async (announcementId: string, reaction: string): Promise<ReactionResult> => {
+    setReactionLoading((prev) => ({ ...prev, [announcementId]: reaction }));
+    try {
+      const result = await toggleAnnouncementReaction(announcementId, reaction);
+      setReactions((prev) => ({ ...prev, [announcementId]: result.mine }));
+      setReactionCounts((prev) => ({ ...prev, [announcementId]: result.counts }));
+      return result;
+    } finally {
+      setReactionLoading((prev) => ({ ...prev, [announcementId]: null }));
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -130,6 +163,14 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
         (a.sender || "").toLowerCase().includes(q)
       )
     : announcements;
+
+  const getAudienceLabel = (item: Announcement) => {
+    if (item.visibility_scope === "ORGANIZATION" && !item.visibility_target) return "BOTH";
+    if (item.visibility_scope === "DEPARTMENT" && item.visibility_target?.trim()) {
+      return item.visibility_target.trim().toUpperCase();
+    }
+    return null;
+  };
 
   if (filtered.length === 0) {
     return (
@@ -166,6 +207,11 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
                     <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatDate(item.created_at)}</Text>
                   </>
                 ) : null}
+                {getAudienceLabel(item) ? (
+                  <View style={[styles.audienceBadge, { backgroundColor: colors.primaryLight }]}>
+                    <Text style={[styles.audienceText, { color: colors.primary }]}>{getAudienceLabel(item)}</Text>
+                  </View>
+                ) : null}
                 <View style={[styles.statusBadge, { backgroundColor: item.status === "Published" ? `${colors.success}20` : colors.background }]}>
                   <View style={[styles.statusDot, { backgroundColor: item.status === "Published" ? colors.success : colors.textMuted }]} />
                   <Text style={[styles.statusText, { color: item.status === "Published" ? colors.success : colors.textMuted }]}>{item.status}</Text>
@@ -178,6 +224,13 @@ export function AnnouncementsView({ searchQuery = "" }: { searchQuery?: string }
                 {item.body}
               </Text>
             ) : null}
+            <ReactionBar
+              options={ANNOUNCEMENT_REACTION_OPTIONS}
+              reactions={reactions[item.announcement_id || item.id || ""] || {}}
+              counts={reactionCounts[item.announcement_id || item.id || ""] || {}}
+              onToggle={(reaction) => toggleReaction(item.announcement_id || item.id || "", reaction)}
+              loadingReaction={reactionLoading[item.announcement_id || item.id || ""] ?? null}
+            />
           </Card>
         </TouchableOpacity>
       )}
@@ -258,6 +311,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
     marginLeft: "auto",
+  },
+  audienceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  audienceText: {
+    fontSize: 10,
+    fontWeight: "700",
   },
   statusDot: {
     width: 6,
